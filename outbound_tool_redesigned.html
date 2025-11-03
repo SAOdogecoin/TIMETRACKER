@@ -653,8 +653,6 @@
             <button id="admin-entry-save" class="panel-btn btn-primary">Save Entry</button>
         </div>
 
-        <hr style="border: none; border-top: 1px solid var(--color-border); margin: 24px 0;">
-
         <h4 style="font-size: 14px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 8px;">Recalculate Hours</h4>
         <div class="form-group">
             <label for="recalculate-date-input">Select Date</label>
@@ -1537,7 +1535,7 @@ Object.assign(UI, {
         imgEl.src = defaultPic; if (!fileId || fileId === 'null') return;
         try { const { dataUrl } = await API.getProfilePicDataUrl(fileId); imgEl.src = dataUrl; } catch {}
     },
-    loadAllVisibleProfilePictures() { document.querySelectorAll('img.profile-pic[data-pic-fileid]').forEach(img => this.updateProfilePic(img, img.dataset.picFileId)); },
+    loadAllVisibleProfilePictures() { document.querySelectorAll('img.profile-pic[data-pic-fileid]').forEach(img => this.updateProfilePic(img, img.dataset.picFileid)); },
     showToast(message, type = 'info', duration = 4000) {
         const container = document.getElementById('toast-container'); const toast = document.createElement('div');
         toast.className = `toast-message toast-${type}`; toast.textContent = message;
