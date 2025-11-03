@@ -1,0 +1,1573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<base target="_top">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Time Tracker</title>
+<link rel="preconnect" href="https://rsms.me/">
+<link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+<style>
+  :root {
+      --font-primary: 'Inter', sans-serif;
+      --radius-md: 8px; 
+      --radius-lg: 16px; /* Increased for a softer look */
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      --transition-base: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      
+      /* Light Theme (Default) */
+      --color-bg: #F8F9FA;
+      --color-surface: #FFFFFF;
+      --color-surface-secondary: #F0F2F5; 
+      --color-border: rgba(0, 0, 0, 0.08);
+      --color-text-primary: #18181B;
+      --color-text-secondary: #71717A;
+      --color-brand: #0071dc; 
+      --color-bg-hover: rgba(0, 0, 0, 0.04);
+      --background-image: linear-gradient(180deg, #FFFFFF 0%, #F8F9FA 100%);
+      --color-disabled: #cbd5e1;
+      --color-sidebar-bg: #FFFFFF;
+
+      /* Status Colors */
+      --color-green: #16A34A;
+      --color-green-hover: #15803d;
+      --color-orange: #f59e0b;
+      --color-orange-hover: #d97706;
+      --color-red: #E11D48;
+      --color-red-hover: #be123c;
+  }
+  
+  body[data-theme="dark"] {
+      /* Dark Theme */
+      --color-bg: #111113;
+      --color-surface: #18181B;
+      --color-surface-secondary: #242526;
+      --color-border: rgba(255, 255, 255, 0.1);
+      --color-text-primary: #F4F4F5;
+      --color-text-secondary: #A1A1AA;
+      --color-bg-hover: rgba(255, 255, 255, 0.06);
+      --background-image: linear-gradient(180deg, #18181B 0%, #111113 100%);
+      --color-disabled: #475569;
+      --color-sidebar-bg: #18181B;
+  }
+
+  /* Base & Layout */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { font-family: var(--font-primary); -webkit-font-smoothing: antialiased; }
+  body { 
+      background-color: var(--color-bg); 
+      background-image: var(--background-image);
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      color: var(--color-text-primary); 
+      font-size: 14px; 
+      overflow: hidden; 
+      height: 100vh; 
+      transition: background-image 0.5s, background-color 0.3s, color 0.3s; 
+      display: flex;
+      justify-content: center;
+  }
+  
+  .dashboard-content::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--color-bg);
+      opacity: 0.4;
+      z-index: -1;
+      display: none;
+  }
+  body.has-custom-bg .dashboard-content::before { display: block; }
+  body.has-custom-bg[data-theme="dark"] .dashboard-content::before { background: #111113; opacity: 0.6; }
+
+  #loading-indicator { position: fixed; inset: 0; background: rgba(255, 255, 255, 0.7); display: flex; align-items: center; justify-content: center; z-index: 9999; opacity: 0; visibility: hidden; transition: opacity 0.2s; }
+  body[data-theme="dark"] #loading-indicator { background: rgba(2, 6, 23, 0.7); }
+  #loading-indicator.show { opacity: 1; visibility: visible; }
+  .loading-spinner { width: 32px; height: 32px; border: 3px solid var(--color-border); border-top-color: var(--color-brand); border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .app-layout { display: flex; flex-direction: column; height: 100vh; position: relative; width: 100%; max-width: 1440px; }
+  .dashboard-content { flex: 1; overflow-y: auto; padding: 24px 48px; position: relative; }
+  .main-content-wrapper { width: 100%; max-width: 600px; margin: 0 auto; }
+
+  /* --- NEW --- Animation on load */
+  @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+  .dashboard-header { margin-bottom: 24px; animation: fadeInUp 0.5s ease-out both; }
+  .greeting-title { font-size: 32px; font-weight: 600; color: var(--color-text-primary); }
+  .current-date { font-size: 16px; font-weight: 500; color: var(--color-text-secondary); }
+  
+  .main-time-counter { font-size: 7.5rem; font-weight: 700; line-height: 1; color: var(--color-text-primary); margin-bottom: 8px; font-variant-numeric: tabular-nums; animation: fadeInUp 0.5s 0.1s ease-out both; }
+  .current-status-text { font-size: 1.1rem; font-weight: 500; color: var(--color-text-secondary); margin-bottom: 32px; text-align: left; animation: fadeInUp 0.5s 0.2s ease-out both;}
+  
+  .status-text-working { color: var(--color-green); }
+  .status-text-break { color: var(--color-orange); }
+  .status-text-offline { color: var(--color-text-secondary); }
+  .status-text-warning { color: var(--color-orange); } 
+  
+  .main-action-button-container { min-height: 72px; margin-bottom: 48px; position: relative; animation: fadeInUp 0.5s 0.3s ease-out both; }
+  .main-action-button { height: 60px; padding: 0 40px; border-radius: 99px; font-size: 20px; font-weight: 600; border: none; position: absolute; transition: all 0.25s ease; color: #fff; cursor: pointer; }
+  .main-action-button:disabled { background-color: var(--color-disabled); cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+  
+  /* --- NEW --- Enhanced button hover effect */
+  .main-action-button:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+
+  .btn-green, .btn-orange, .btn-red { background-color: var(--color-green); }
+  .btn-green:hover:not(:disabled) { background-color: var(--color-green-hover); }
+  .btn-orange { background-color: var(--color-orange); }
+  .btn-orange:hover:not(:disabled) { background-color: var(--color-orange-hover); }
+  .btn-red { background-color: var(--color-red); }
+  .btn-red:hover:not(:disabled) { background-color: var(--color-red-hover); }
+  
+  .dashboard-widgets-grid { display: grid; grid-template-columns: 1fr; grid-auto-rows: min-content; gap: 24px; animation: fadeInUp 0.5s 0.4s ease-out both;}
+
+  .top-bar { padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 950;}
+  .top-bar-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+  .top-bar-btn { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--color-border); background: var(--color-surface); cursor: pointer; color: var(--color-text-primary); transition: background-color 0.2s; }
+  .top-bar-btn:hover { background: var(--color-bg-hover); }
+  
+  .admin-panel-trigger {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 44px;
+      padding: 0 16px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      cursor: pointer;
+      color: var(--color-text-primary);
+      transition: background-color 0.2s;
+      font-weight: 600;
+      font-size: 14px;
+  }
+  .admin-panel-trigger:hover {
+      background: var(--color-bg-hover);
+  }
+
+  #user-menu-trigger {
+      background: transparent;
+      border: none;
+      width: 48px;
+      height: 48px;
+      padding: 0;
+  }
+  
+  .user-menu-container { position: relative; top: 0; right: 0; }
+  .profile-pic { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; background-color: var(--color-border); }
+  
+  #user-menu-pic {
+    width: 48px;
+    height: 48px;
+  }
+  
+  .popup-menu { position: fixed; z-index: 200; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); width: 260px; opacity: 0; visibility: hidden; transform: scale(0.95) translateY(-10px); transition: all 0.15s ease-out; transform-origin: top; overflow: hidden;}
+  .popup-menu#admin-panel-popup { transform-origin: top left; padding: 6px; }
+  .popup-menu#user-actions-popup {
+      transform-origin: top right;
+      width: 340px;
+      padding: 0;
+      background-color: var(--color-surface-secondary);
+      border: none;
+      box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.25);
+      display: flex;
+      flex-direction: column;
+  }
+  .popup-menu.show { opacity: 1; visibility: visible; transform: scale(1) translateY(0); }
+  .popup-section { padding: 4px 0; border-bottom: 1px solid var(--color-border); }
+  .popup-section:last-child { border-bottom: none; }
+  .popup-item { padding: 10px 12px; font-size: 14px; font-weight: 500; border-radius: var(--radius-md); display: flex; align-items: center; gap: 10px; cursor: pointer; transition: background-color 0.2s; }
+  .popup-item:hover { background: var(--color-bg-hover); }
+  .popup-item label { flex: 1; }
+  
+  /* New User Popup Styles */
+  .user-popup-profile-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 20px 16px;
+      position: relative;
+  }
+  .user-popup-pic-wrapper { position: relative; margin-bottom: 16px; }
+  .user-popup-pic { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; background-color: var(--color-border); }
+  .change-picture-btn { position: absolute; bottom: 0; right: 0; width: 32px; height: 32px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  .change-picture-btn:hover { background-color: var(--color-bg-hover); }
+  .user-popup-name { font-size: 20px; font-weight: 600; color: var(--color-text-primary); }
+  
+  .theme-toggle-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: transparent;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--color-text-secondary);
+      transition: background-color 0.2s, color 0.2s;
+  }
+  .theme-toggle-btn:hover {
+      background-color: var(--color-bg-hover);
+      color: var(--color-text-primary);
+  }
+
+  .popup-search-wrapper {
+      padding: 0 16px 12px;
+      background-color: var(--color-surface-secondary);
+      flex-shrink: 0;
+  }
+  #user-search-input {
+      width: 100%;
+      height: 36px;
+      border-radius: 99px;
+      border: 1px solid var(--color-border);
+      background-color: var(--color-surface);
+      padding: 0 16px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--color-text-primary);
+  }
+  #user-search-input:focus {
+      outline: 2px solid var(--color-brand);
+      outline-offset: 1px;
+      border-color: transparent;
+  }
+
+  .popup-user-list {
+      max-height: 280px;
+      overflow-y: auto;
+      background-color: var(--color-surface);
+      border-radius: var(--radius-lg);
+      margin: 0 8px 8px;
+      padding: 8px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      flex: 1;
+  }
+  .popup-user-item { 
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between;
+      gap: 12px; 
+      padding: 10px; 
+      border-radius: var(--radius-md); 
+      cursor: pointer; 
+      font-weight: 500;
+  }
+  .popup-user-item:hover { background-color: var(--color-bg-hover); }
+  .popup-user-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+      min-width: 0;
+  }
+  .popup-user-info span {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+  }
+  .popup-user-item .profile-pic { width: 32px; height: 32px; }
+
+  .popup-user-list::-webkit-scrollbar { width: 14px; }
+  .popup-user-list::-webkit-scrollbar-track { background: transparent; }
+  .popup-user-list::-webkit-scrollbar-thumb {
+      background-color: rgba(0,0,0,0.2);
+      border-radius: 20px;
+      border: 4px solid transparent;
+      background-clip: content-box;
+  }
+  body[data-theme="dark"] .popup-user-list::-webkit-scrollbar-thumb {
+      background-color: rgba(255,255,255,0.2);
+  }
+
+  .admin-menu-sidebar { width: 320px; flex-shrink: 0; background: var(--color-sidebar-bg); border-left: 1px solid var(--color-border); display: flex; flex-direction: column; height: 100vh; position: fixed; top: 0; right: 0; z-index: 2000; transform: translateX(100%); transition: transform var(--transition-base); box-shadow: -10px 0 25px -10px rgba(0,0,0,0.1); }
+  .admin-menu-sidebar.is-visible { transform: translateX(0); }
+  .admin-menu-sidebar.from-left { right: auto; left: 0; transform: translateX(-100%); border-left: none; border-right: 1px solid var(--color-border); }
+  .admin-menu-sidebar.from-left.is-visible { transform: translateX(0); }
+
+  .sidebar-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.2); z-index: 1999; opacity: 0; visibility: hidden; transition: opacity var(--transition-base); }
+  .sidebar-backdrop.is-visible { opacity: 1; visibility: visible; }
+  .status-pill { flex-shrink: 0; padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 500; text-align: center; color: #fff; }
+  .status-working { background-color: var(--color-green); }
+  .status-break { background-color: var(--color-orange); }
+  .status-offline { background-color: var(--color-text-secondary); }
+  
+  .widget-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 24px; position: relative; transition: transform 0.3s ease, box-shadow 0.3s ease; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
+  .widget-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+
+  .widget-card.log-widget {
+      background: var(--color-surface-secondary);
+      padding: 20px 8px 8px;
+      box-shadow: none;
+      border: none;
+      border-radius: 20px;
+  }
+   .widget-card.log-widget:hover {
+      transform: none;
+      box-shadow: none;
+  }
+
+  .widget-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .log-widget .widget-header {
+      padding: 0 12px;
+      margin-bottom: 12px;
+  }
+  .widget-header h3 { font-size: 18px; font-weight: 600; color: var(--color-text-primary); }
+  .gsheet-link { color: var(--color-text-secondary); text-decoration: none; font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; transition: color 0.2s; }
+  .gsheet-link:hover { color: var(--color-brand); }
+  
+  #time-log-container { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 8px; 
+      background-color: var(--color-surface);
+      border-radius: 12px;
+      padding: 8px;
+  }
+  .log-item { display: flex; align-items: center; justify-content: space-between; transition: background-color 0.2s; border-radius: var(--radius-md); padding: 8px; }
+  .log-item:hover { background-color: var(--color-bg-hover); }
+  .log-item-info { display: flex; align-items: center; gap: 12px; }
+  .log-icon-wrapper { width: 32px; height: 32px; border-radius: 50%; background-color: var(--color-bg); display: flex; align-items: center; justify-content: center; }
+  .log-label { font-weight: 500; color: var(--color-text-primary); }
+  .log-time { font-size: 12px; color: var(--color-text-secondary); }
+  .log-duration { font-size: 12px; color: var(--color-text-secondary); font-variant-numeric: tabular-nums; margin-left: 8px; }
+  .admin-actions { display: none; }
+  .is-admin .admin-actions { display: flex; align-items: center; gap: 8px; }
+  .admin-action-btn { background: none; border: none; cursor: pointer; padding: 4px; border-radius: 50%; transition: background-color 0.2s; }
+  .admin-action-btn:hover { background-color: var(--color-bg-hover); }
+  
+  .icon { display: inline-block; width: 20px; height: 20px; background-color: currentColor; mask-size: contain; -webkit-mask-size: contain; mask-repeat: no-repeat; -webkit-mask-repeat: no-repeat; mask-position: center; -webkit-mask-position: center; }
+  [data-icon="users"], [data-icon="x"], [data-icon="sun"], [data-icon="moon"], [data-icon="external-link"], [data-icon="login"], [data-icon="logout"], [data-icon="coffee"], [data-icon="utensils"], [data-icon="edit"], [data-icon="trash"], [data-icon="plus"], [data-icon="sync"], [data-icon="user-cog"], [data-icon="image"], [data-icon="sheet"], [data-icon="automation"], [data-icon="history"], [data-icon="camera"], [data-icon="shield"] { -webkit-mask-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"%3E%3Cpath d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"%3E%3C/path%3E%3Ccircle cx="9" cy="7" r="4"%3E%3C/circle%3E%3Cpath d="M23 21v-2a4 4 0 0 0-3-3.87"%3E%3C/path%3E%3Cpath d="M16 3.13a4 4 0 0 1 0 7.75"%3E%3C/path%3E%3C/svg%3E'); }
+  [data-icon="x"] { -webkit-mask-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"%3E%3Cline x1="18" y1="6" x2="6" y2="18"%3E%3C/line%3E%3Cline x1="6" y1="6" x2="18" y2="18"%3E%3C/line%3E%3C/svg%3E'); }
+  [data-icon="sun"] { -webkit-mask-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"%3E%3Ccircle cx="12" cy="12" r="5"%3E%3C/circle%3E%3Cline x1="12" y1="1" x2="12" y2="3"%3E%3C/line%3E%3Cline x1="12" y1="21" x2="12" y2="23"%3E%3C/line%3E%3Cline x1="4.22" y1="4.22" x2="5.64" y2="5.64"%3E%3C/line%3E%3Cline x1="18.36" y1="18.36" x2="19.78" y2="19.78"%3E%3C/line%3E%3Cline x1="1" y1="12" x2="3" y2="12"%3E%3C/line%3E%3Cline x1="21" y1="12" x2="23" y2="12"%3E%3C/line%3E%3Cline x1="4.22" y1="19.78" x2="5.64" y2="18.36"%3E%3C/line%3E%3Cline x1="18.36" y1="5.64" x2="19.78" y2="4.22"%3E%3C/line%3E%3C/svg%3E'); }
+  [data-icon="moon"] { -webkit-mask-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"%3E%3Cpath d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"%3E%3C/path%3E%3C/svg%3E'); }
+  [data-icon="camera"] { -webkit-mask-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"%3E%3Cpath d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"%3E%3C/path%3E%3Ccircle cx="12" cy="13" r="4"%3E%3C/circle%3E%3C/svg%3E'); }
+  [data-icon="external-link"] { width: 14px; height: 14px; -webkit-mask-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"%3E%3Cpath d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"%3E%3C/path%3E%3Cpolyline points="15 3 21 3 21 9"%3E%3C/polyline%3E%3Cline x1="10" y1="14" x2="21" y2="3"%3E%3C/line%3E%3C/svg%3E'); }
+  [data-icon="login"] { color: var(--color-green); -webkit-mask-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"%3E%3Cpath d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"%3E%3C/path%3E%3Cpolyline points="10 17 15 12 10 7"%3E%3C/polyline%3E%3Cline x1="15" y1="12" x2="3" y2="12"%3E%3C/line%3E%3C/svg%3E'); }
+  [data-icon="logout"] { color: var(--color-red); -webkit-mask-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"%3E%3Cpath d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"%3E%3C/path%3E%3Cpolyline points="16 17 21 12 16 7"%3E%3C/polyline%3E%3Cline x1="21" y1="12" x2="9" y2="12"%3E%3C/line%3E%3C/svg%3E'); }
+  [data-icon="coffee"] { color: var(--color-orange); -webkit-mask-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"%3E%3Cpath d="M18 8h1a4 4 0 0 1 0 8h-1"%3E%3C/path%3E%3Cpath d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"%3E%3C/path%3E%3Cline x1="6" y1="1" x2="6" y2="4"%3E%3C/line%3E%3Cline x1="10" y1="1" x2="10" y2="4"%3E%3C/line%3E%3Cline x1="14" y1="1" x2="14" y2="4"%3E%3C/line%3E%3C/svg%3E'); }
+  [data-icon="utensils"] { color: var(--color-orange); -webkit-mask-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"%3E%3Cpath d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"%3E%3C/path%3E%3Cpath d="M7 2v20"%3E%3C/path%3E%3Cpath d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3z"%3E%3C/path%3E%3C/svg%3E'); }
+  [data-icon="edit"] { width: 16px; height: 16px; color: var(--color-text-secondary); -webkit-mask-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"%3E%3Cpath d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"%3E%3C/path%3E%3Cpath d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"%3E%3C/path%3E%3C/svg%3E'); }
+  [data-icon="trash"] { width: 16px; height: 16px; color: var(--color-text-secondary); -webkit-mask-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"%3E%3Cpolyline points="3 6 5 6 21 6"%3E%3C/polyline%3E%3Cpath d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"%3E%3C/path%3E%3C/svg%3E'); }
+  [data-icon="plus"] { width: 16px; height: 16px; -webkit-mask-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"%3E%3Cline x1="12" y1="5" x2="12" y2="19"%3E%3C/line%3E%3Cline x1="5" y1="12" x2="19" y2="12"%3E%3C/line%3E%3C/svg%3E'); }
+  [data-icon="sync"] { -webkit-mask-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"%3E%3Cpolyline points="23 4 23 10 17 10"%3E%3C/polyline%3E%3Cpolyline points="1 20 1 14 7 14"%3E%3C/polyline%3E%3Cpath d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"%3E%3C/path%3E%3C/svg%3E'); }
+  [data-icon="user-cog"] { -webkit-mask-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"%3E%3Cpath d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"%3E%3C/path%3E%3Ccircle cx="9" cy="7" r="4"%3E%3C/circle%3E%3Ccircle cx="19" cy="11" r="2"%3E%3C/circle%3E%3Cpath d="M19 8v1"%3E%3C/path%3E%3Cpath d="M19 13v1"%3E%3C/path%3E%3Cpath d="m21.6 9.5-.87.5"%3E%3C/path%3E%3Cpath d="m17.27 12-.87.5"%3E%3C/path%3E%3Cpath d="m21.6 12.5-.87-.5"%3E%3C/path%3E%3Cpath d="m17.27 15-.87-.5"%3E%3C/path%3E%3C/svg%3E'); }
+  [data-icon="image"] { -webkit-mask-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"%3E%3Crect x="3" y="3" width="18" height="18" rx="2" ry="2"%3E%3C/rect%3E%3Ccircle cx="8.5" cy="8.5" r="1.5"%3E%3C/circle%3E%3Cpolyline points="21 15 16 10 5 21"%3E%3C/polyline%3E%3C/svg%3E'); }
+  [data-icon="sheet"] { -webkit-mask-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"%3E%3Cpath d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"%3E%3C/path%3E%3Cpolyline points="14 2 14 8 20 8"%3E%3C/polyline%3E%3Cline x1="16" y1="13" x2="8" y2="13"%3E%3C/line%3E%3Cline x1="16" y1="17" x2="8" y2="17"%3E%3C/line%3E%3Cpolyline points="10 9 9 9 8 9"%3E%3C/polyline%3E%3C/svg%3E');}
+  [data-icon="automation"] { -webkit-mask-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"%3E%3Cpath d="M12 20V10"%3E%3C/path%3E%3Cpath d="M12 10l-2.5 2.5"%3E%3C/path%3E%3Cpath d="M12 10l2.5 2.5"%3E%3C/path%3E%3Cpath d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16z"%3E%3C/path%3E%3Cpath d="M12 14.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"%3E%3C/path%3E%3C/svg%3E');}
+  [data-icon="history"] { -webkit-mask-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"%3E%3Cpath d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"%3E%3C/path%3E%3Cpath d="M12 8v4l2 2"%3E%3C/path%3E%3C/svg%3E');}
+  [data-icon="shield"] { -webkit-mask-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"%3E%3Cpath d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"%3E%3C/path%3E%3C/svg%3E');}
+  
+  .form-group { display: flex; flex-direction: column; }
+  .form-group label { font-size: 12px; font-weight: 500; color: var(--color-text-secondary); margin-bottom: 4px; }
+  .form-group input, .form-group select { width: 100%; height: 40px; border: 1px solid var(--color-border); background: var(--color-bg); border-radius: var(--radius-md); padding: 0 12px; font-size: 14px; color: var(--color-text-primary); }
+  .form-group-checkbox { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; }
+  
+  .panel-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
+  .panel-btn { height: 36px; border: none; border-radius: var(--radius-md); padding: 0 16px; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
+  .btn-secondary { background: var(--color-bg-hover); color: var(--color-text-primary); border: 1px solid var(--color-border); }
+  .btn-primary { background: var(--color-brand); color: #fff; }
+
+  .telegram-group { display: flex; align-items: flex-end; gap: 8px; }
+  .telegram-group .form-group { flex: 1; }
+  #settings-test-telegram { height: 40px; }
+  
+  #admin-panels-container { position: fixed; top: 0; left: 0; z-index: 200; pointer-events: none; }
+  .admin-panel {
+      display: none;
+      position: absolute;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      padding: 24px;
+      width: 320px;
+      pointer-events: auto;
+      animation: fadeIn 0.2s ease-out;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+  .admin-panel.show { display: block; }
+  .admin-panel-header { display: none; }
+  .admin-panel.is-sticky .admin-panel-header {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      position: absolute;
+      top: 8px;
+      right: 8px;
+  }
+  .admin-panel.is-sticky .admin-panel-header h3 { display: none; }
+  .admin-panel h3 { margin-bottom: 24px; font-size: 18px; font-weight: 600; }
+  .admin-panel-content { display: flex; flex-direction: column; gap: 16px; }
+
+  #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 10px; max-width: 320px; }
+  .toast-message { padding: 12px 20px; border-radius: var(--radius-md); color: #fff; font-weight: 500; box-shadow: var(--shadow-lg); opacity: 0; transform: translateX(100%); transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+  .toast-message.show { opacity: 1; transform: translateX(0); }
+  .toast-success { background-color: var(--color-green); }
+  .toast-error { background-color: var(--color-red); }
+  .toast-info { background-color: var(--color-brand); }
+
+  .timed-action-row { display: grid; grid-template-columns: 30px 1fr 1fr 30px; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .timed-action-row select, .timed-action-row input { height: 36px; padding: 0 8px; }
+  #add-timed-action-btn { width: 100%; }
+  
+  #automation-log-container {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 50vh;
+      overflow-y: auto;
+      padding-right: 8px;
+  }
+  .automation-log-entry { font-size: 13px; line-height: 1.5; }
+  .automation-log-entry .log-meta { font-size: 11px; color: var(--color-text-secondary); margin-bottom: 2px; }
+  .automation-log-entry .log-reason { font-style: italic; color: var(--color-text-secondary); }
+
+  @media (max-width: 768px) {
+      .app-layout { max-width: 100%; }
+      .dashboard-content { padding: 24px; }
+      .greeting-title { font-size: 28px; }
+      .main-time-counter { font-size: 5rem; }
+      .main-time-counter .timer-seconds { display: none; } 
+      .current-status-text { font-size: 1rem; }
+      .main-action-button { height: 56px; padding: 0 32px; font-size: 18px; }
+      .dashboard-widgets-grid { padding-bottom: 80px; } 
+      .popup-item:hover { background: transparent; }
+      #admin-panels-container { position: fixed; inset: 0; z-index: 2500; pointer-events: none; }
+      .admin-panel {
+          width: 90vw;
+          max-width: 320px;
+          height: 100vh;
+          position: fixed;
+          top: 0 !important;
+          left: 0 !important;
+          z-index: 2600;
+          border-radius: 0;
+          border-right: 1px solid var(--color-border);
+          border-left: none;
+          border-top: none;
+          border-bottom: none;
+          transform: translateX(-100%);
+          transition: transform var(--transition-base);
+          animation: none;
+          overflow-y: auto;
+          display: block;
+          visibility: hidden;
+      }
+      .admin-panel.show {
+          transform: translateX(0);
+          pointer-events: auto;
+          visibility: visible;
+      }
+      .admin-panel-header, .admin-panel.is-sticky .admin-panel-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 24px;
+          position: static;
+      }
+       .admin-panel-header h3, .admin-panel.is-sticky .admin-panel-header h3 {
+           display: block;
+           margin-bottom: 0;
+       }
+       .close-panel-btn {
+          background: none; border: none; cursor: pointer;
+          padding: 8px; border-radius: 50%; color: var(--color-text-primary);
+      }
+      .close-panel-btn:hover { background-color: var(--color-bg-hover); }
+  }
+</style>
+</head>
+<body data-theme="light">
+<div id="loading-indicator"><div class="loading-spinner"></div></div>
+<div class="app-layout">
+    <header class="top-bar">
+        <button id="admin-panel-btn" class="admin-panel-trigger is-admin" style="display: none;" aria-label="Open Admin Panel">
+            <i class="icon" data-icon="shield"></i>
+            <span>Admin panel</span>
+        </button>
+        <div class="top-bar-right">
+            <div class="user-menu-container">
+                <button id="user-menu-trigger" class="top-bar-btn" aria-label="Open User Menu">
+                    <img id="user-menu-pic" src="" alt="Profile" class="profile-pic">
+                </button>
+            </div>
+        </div>
+    </header>
+<div class="dashboard-content">
+    <div class="main-content-wrapper">
+        <header class="dashboard-header">
+            <h1 id="greeting-title" class="greeting-title">Welcome</h1>
+            <p id="current-date" class="current-date"></p>
+        </header>
+        <p id="main-time-counter" class="main-time-counter">00:00:00</p>
+        <p id="current-status-text" class="current-status-text"></p>
+        <div id="main-action-button-container" class="main-action-button-container"></div>
+        
+        <div class="dashboard-widgets-grid">
+            <div class="widget-card log-widget">
+                <div class="widget-header">
+                    <h3>Today's Log</h3>
+                    <a id="gsheet-link" href="#" target="_blank" class="gsheet-link"><i class="icon" data-icon="external-link"></i> View Sheet</a>
+                </div>
+                <div id="time-log-container"></div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+<aside id="admin-menu-sidebar" class="admin-menu-sidebar from-left">
+    <div class="team-sidebar-header">
+        <h3>Admin Menu</h3>
+        <button id="close-admin-menu-btn" class="close-sidebar-btn" aria-label="Close admin menu"><i class="icon" data-icon="x"></i></button>
+    </div>
+    <div id="admin-menu-container" class="team-list-container">
+    </div>
+</aside>
+<div id="sidebar-backdrop" class="sidebar-backdrop"></div>
+<div id="admin-panel-backdrop" class="sidebar-backdrop"></div>
+<div class="popup-menu" id="user-actions-popup">
+    <div class="user-popup-profile-section">
+        <div class="user-popup-pic-wrapper">
+            <img id="user-popup-pic" src="" alt="Profile" class="user-popup-pic">
+            <button id="change-picture-btn" class="is-admin change-picture-btn" style="display: none;">
+                <i class="icon" data-icon="camera"></i>
+            </button>
+        </div>
+        <h2 id="user-popup-name" class="user-popup-name"></h2>
+        <button id="theme-toggle-btn" class="theme-toggle-btn" aria-label="Toggle theme">
+            <i class="icon" id="theme-icon"></i>
+        </button>
+    </div>
+    <div class="popup-search-wrapper">
+        <input type="search" id="user-search-input" placeholder="Search team...">
+    </div>
+    <div class="popup-user-list" id="user-select-list">
+    </div>
+</div>
+<div class="popup-menu" id="admin-panel-popup">
+    <div class="popup-item" data-target="#admin-settings-panel">
+        <i class="icon" data-icon="user-cog"></i><label>User Settings</label>
+    </div>
+    <div class="popup-item" data-target="#admin-automation-panel">
+        <i class="icon" data-icon="automation"></i><label>Automation</label>
+    </div>
+    <div class="popup-item" data-target="#admin-log-panel">
+        <i class="icon" data-icon="history"></i><label>Automation Log</label>
+    </div>
+    <div class="popup-item" data-target="#admin-data-tools-panel">
+        <i class="icon" data-icon="sync"></i><label>Data Tools</label>
+    </div>
+    <div class="popup-item" data-target="#admin-generate-sheet-panel">
+        <i class="icon" data-icon="sheet"></i><label>Generate Week Sheet</label>
+    </div>
+</div>
+<div id="admin-panels-container">
+    <div class="admin-panel" id="admin-settings-panel">
+         <div class="admin-panel-header">
+             <h3>User Settings</h3>
+             <button class="close-panel-btn"><i class="icon" data-icon="x"></i></button>
+        </div>
+        <h3>User Settings</h3>
+        <div class="admin-panel-content">
+            <div class="telegram-group">
+                <div class="form-group">
+                    <label for="settings-telegram-id">Telegram Chat ID</label>
+                    <input type="text" id="settings-telegram-id">
+                </div>
+                <button id="settings-test-telegram" class="panel-btn btn-secondary">Test</button>
+            </div>
+            <div class="form-group-checkbox">
+                <label for="settings-enable-notifs">Enable Telegram Reminders</label>
+                <input type="checkbox" id="settings-enable-notifs">
+            </div>
+             <div class="form-group">
+                <label for="settings-clockin-reminder">Clock-In Reminder Time</label>
+                <input type="time" id="settings-clockin-reminder">
+            </div>
+        </div>
+    </div>
+    <div class="admin-panel" id="admin-automation-panel">
+        <div class="admin-panel-header">
+             <h3>Automation</h3>
+             <button class="close-panel-btn"><i class="icon" data-icon="x"></i></button>
+        </div>
+        <h3>Automation</h3>
+        <div class="admin-panel-content">
+            <h4 style="font-size: 14px; font-weight: 600; color: var(--color-text-primary);">Auto Clock Out</h4>
+            <div class="form-group-checkbox">
+                <label for="settings-enable-auto-clockout">Enable Auto Clock Out by Duration</label>
+                <input type="checkbox" id="settings-enable-auto-clockout">
+            </div>
+            <div class="form-group">
+                <label for="settings-auto-clockout-duration">Working Hours Before Clock Out</label>
+                <input type="number" id="settings-auto-clockout-duration" min="1" value="8">
+            </div>
+<h4 style="font-size: 14px; font-weight: 600; margin-top: 8px; color: var(--color-text-primary);">Auto-end Timers</h4>
+        <div class="form-group-checkbox">
+            <label for="settings-enable-auto-end-break">Auto-end Break</label>
+            <input type="checkbox" id="settings-enable-auto-end-break">
+        </div>
+        <div class="form-group">
+            <label for="settings-auto-end-break-duration">Break Duration (minutes)</label>
+            <input type="number" id="settings-auto-end-break-duration" min="1" value="15">
+        </div>
+         <div class="form-group-checkbox">
+            <label for="settings-enable-auto-end-lunch">Auto-end Lunch</label>
+            <input type="checkbox" id="settings-enable-auto-end-lunch">
+        </div>
+        <div class="form-group">
+            <label for="settings-auto-end-lunch-duration">Lunch Duration (minutes)</label>
+            <input type="number" id="settings-auto-end-lunch-duration" min="1" value="60">
+        </div>
+
+        <h4 style="font-size: 14px; font-weight: 600; margin-top: 8px; color: var(--color-text-primary);">Timed Actions</h4>
+         <div id="timed-actions-list"></div>
+        <button id="add-timed-action-btn" class="panel-btn btn-secondary" style="height: 40px;">Add New Timed Action</button>
+    </div>
+</div>
+
+<div class="admin-panel" id="admin-data-tools-panel">
+    <div class="admin-panel-header">
+        <h3>Data Tools</h3>
+        <button class="close-panel-btn"><i class="icon" data-icon="x"></i></button>
+    </div>
+    <h3>Data Tools</h3>
+    <div class="admin-panel-content">
+        <h4 id="admin-entry-title-header" style="font-size: 14px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 8px;">Add / Edit Time Entry</h4>
+        <div id="admin-modal-add-container" class="form-group">
+            <label for="admin-type-select">Entry Type</label>
+            <select id="admin-type-select"></select>
+        </div>
+        <div class="form-group">
+            <label for="admin-time-input">Time</label>
+            <input type="text" id="admin-time-input" placeholder="e.g., 10:20:11 AM">
+        </div>
+        <small style="color: var(--color-text-secondary); display: block;">Use 'M/d/yyyy HH:mm:ss' (24h) for specific dates.</small>
+        <div class="panel-actions" style="margin-top: 16px;">
+            <button id="admin-entry-save" class="panel-btn btn-primary">Save Entry</button>
+        </div>
+
+        <hr style="border: none; border-top: 1px solid var(--color-border); margin: 24px 0;">
+
+        <h4 style="font-size: 14px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 8px;">Recalculate Hours</h4>
+        <div class="form-group">
+            <label for="recalculate-date-input">Select Date</label>
+            <input type="date" id="recalculate-date-input">
+        </div>
+        <div class="panel-actions">
+            <button id="recalculate-confirm" class="panel-btn btn-primary">Recalculate</button>
+        </div>
+    </div>
+</div>
+
+<div class="admin-panel" id="admin-generate-sheet-panel">
+    <div class="admin-panel-header">
+         <h3>Generate Week Sheet</h3>
+         <button class="close-panel-btn"><i class="icon" data-icon="x"></i></button>
+    </div>
+    <h3>Generate Week Sheet</h3>
+    <div class="admin-panel-content">
+        <div class="form-group">
+            <label for="generate-week-input">Week Number(s)</label>
+            <input type="text" id="generate-week-input" placeholder="e.g., 45, 46">
+            <small style="color: var(--color-text-secondary); display: block; margin-top: 4px;">Enter one or more week numbers, separated by commas.</small>
+        </div>
+    </div>
+    <div class="panel-actions">
+        <button id="generate-sheet-confirm" class="panel-btn btn-primary">Generate</button>
+    </div>
+</div>
+
+<div class="admin-panel" id="admin-log-panel">
+    <div class="admin-panel-header">
+         <h3>Automation Log</h3>
+         <button class="close-panel-btn"><i class="icon" data-icon="x"></i></button>
+    </div>
+    <h3>Automation Log</h3>
+    <div class="panel-actions" style="margin-top: 0; margin-bottom: 16px; justify-content: flex-start;">
+        <button id="clear-log-btn" class="panel-btn btn-secondary">Clear Log</button>
+    </div>
+    <div id="automation-log-container" class="admin-panel-content" style="gap: 12px; padding:0;">
+    </div>
+</div>
+</div>
+<input type="file" id="profile-pic-input" accept="image/*" style="display: none;">
+<div id="toast-container"></div>
+<script>
+const Validation = {
+    canClockIn(timeEntries) {
+        const hasClockedOut = timeEntries && timeEntries.clockOut && String(timeEntries.clockOut).trim() !== '--';
+        if (hasClockedOut) { return { isValid: false, message: 'You have already clocked out for the day.' }; }
+        return { isValid: true, message: null };
+    }
+};
+
+const App = {
+    state: { 
+        currentUser: null, users: [], liveUpdateInterval: null, 
+        initialSecondsOnLoad: 0, loadTimestamp: 0, isTeamDataLoaded: false,
+        theme: 'light', isAdmin: <?!= isAdmin ?>, adminEditContext: null,
+        adminPanelLocked: false, automationEventInterval: null,
+        isTeamDataLoading: false, teamDataLoadFailed: false
+    },
+    async init() {
+        this.cacheDOMElements();
+        this.bindEventListeners();
+        
+        const savedTheme = localStorage.getItem('timetracker_theme') || 'light';
+        this.state.theme = savedTheme;
+        UI.applyTheme(this.state.theme);
+
+        if (this.state.isAdmin) {
+            document.body.classList.add('is-admin');
+            document.querySelectorAll('.is-admin').forEach(el => el.style.display = 'flex');
+            UI.populateAdminMenuSidebar();
+            this.state.automationEventInterval = setInterval(() => this.checkForRecentEvents(), 30000);
+        }
+
+        const savedName = "<?!= userNameFromUrl ?>" || localStorage.getItem('timetracker_selectedName');
+        await this.loadInitialData(savedName);
+        API.getSpreadsheetUrl().then(url => UI.setGSheetLink(url));
+        this.loadTeamDataInBackground();
+    },
+    cacheDOMElements() {
+        this.dom = {
+            loading: document.getElementById('loading-indicator'),
+            userMenu: { 
+                trigger: document.getElementById('user-menu-trigger'), 
+                pic: document.getElementById('user-menu-pic'), 
+                popup: document.getElementById('user-actions-popup'), 
+                userList: document.getElementById('user-select-list'),
+                userSearchInput: document.getElementById('user-search-input'),
+                changePictureBtn: document.getElementById('change-picture-btn'),
+                profilePicInput: document.getElementById('profile-pic-input'),
+                popupPic: document.getElementById('user-popup-pic'),
+                popupName: document.getElementById('user-popup-name'),
+                themeToggleBtn: document.getElementById('theme-toggle-btn'),
+                themeIcon: document.getElementById('theme-icon')
+            },
+            dashboard: { 
+                greeting: document.getElementById('greeting-title'), date: document.getElementById('current-date'), 
+                counter: document.getElementById('main-time-counter'), statusText: document.getElementById('current-status-text'),
+                actionBtnContainer: document.getElementById('main-action-button-container'), 
+                logContainer: document.getElementById('time-log-container'), gsheetLink: document.getElementById('gsheet-link')
+            },
+            admin: {
+                panelBtn: document.getElementById('admin-panel-btn'), 
+                panelPopup: document.getElementById('admin-panel-popup'),
+                panelsContainer: document.getElementById('admin-panels-container'),
+                adminPanelBackdrop: document.getElementById('admin-panel-backdrop'),
+                menuSidebar: document.getElementById('admin-menu-sidebar'),
+                closeAdminMenuBtn: document.getElementById('close-admin-menu-btn'),
+                menuContainer: document.getElementById('admin-menu-container'),
+                
+                settingsPanel: {
+                    telegramIdInput: document.getElementById('settings-telegram-id'),
+                    testTelegramBtn: document.getElementById('settings-test-telegram'),
+                    enableNotifsToggle: document.getElementById('settings-enable-notifs'),
+                    clockInReminderInput: document.getElementById('settings-clockin-reminder')
+                },
+                 automationPanel: {
+                    enableAutoClockOutToggle: document.getElementById('settings-enable-auto-clockout'),
+                    autoClockOutDurationInput: document.getElementById('settings-auto-clockout-duration'),
+                    enableAutoEndBreakToggle: document.getElementById('settings-enable-auto-end-break'),
+                    autoEndBreakDurationInput: document.getElementById('settings-auto-end-break-duration'),
+                    enableAutoEndLunchToggle: document.getElementById('settings-enable-auto-end-lunch'),
+                    autoEndLunchDurationInput: document.getElementById('settings-auto-end-lunch-duration'),
+                    timedActionsList: document.getElementById('timed-actions-list'),
+                    addTimedActionBtn: document.getElementById('add-timed-action-btn')
+                },
+                addEntryPanel: {
+                    titleHeader: document.getElementById('admin-entry-title-header'),
+                    typeSelect: document.getElementById('admin-type-select'),
+                    input: document.getElementById('admin-time-input'),
+                    saveBtn: document.getElementById('admin-entry-save'),
+                },
+                generateSheetPanel: {
+                    input: document.getElementById('generate-week-input'),
+                    confirmBtn: document.getElementById('generate-sheet-confirm'),
+                },
+                recalculatePanel: {
+                    input: document.getElementById('recalculate-date-input'),
+                    confirmBtn: document.getElementById('recalculate-confirm'),
+                },
+                logPanel: {
+                    panel: document.getElementById('admin-log-panel'),
+                    container: document.getElementById('automation-log-container'),
+                    clearBtn: document.getElementById('clear-log-btn')
+                }
+            }
+        };
+    },
+    bindEventListeners() {
+        document.addEventListener('click', (e) => UI.hideAllPopupsIfOutside(e));
+        this.dom.userMenu.trigger.addEventListener('click', (e) => UI.togglePopupMenu(this.dom.userMenu.popup, e, this.dom.userMenu.trigger));
+        this.dom.userMenu.themeToggleBtn.addEventListener('click', () => this.toggleTheme());
+        this.dom.userMenu.userSearchInput.addEventListener('input', (e) => UI.renderUserSelectionPopup(this.state.users, e.target.value));
+        
+        if (this.state.isAdmin) {
+            this.dom.admin.panelBtn.addEventListener('click', (e) => {
+                if (window.innerWidth > 768) {
+                    UI.togglePopupMenu(this.dom.admin.panelPopup, e, this.dom.admin.panelBtn);
+                } else {
+                    UI.toggleAdminMenuSidebar(true);
+                }
+            });
+            
+            const adminPopup = this.dom.admin.panelPopup;
+            const adminPanelsContainer = this.dom.admin.panelsContainer;
+            let hidePanelTimeout;
+            
+            const cancelHide = () => clearTimeout(hidePanelTimeout);
+            const scheduleHide = () => {
+                if (App.state.adminPanelLocked) return;
+                cancelHide();
+                hidePanelTimeout = setTimeout(() => {
+                    if (window.innerWidth > 768) {
+                        adminPanelsContainer.querySelectorAll('.admin-panel.show').forEach(p => p.classList.remove('show'));
+                    }
+                }, 200);
+            };
+            
+            adminPopup.addEventListener('mouseleave', scheduleHide);
+            adminPanelsContainer.addEventListener('mouseenter', cancelHide);
+            adminPanelsContainer.addEventListener('mouseleave', scheduleHide);
+            
+            adminPopup.querySelectorAll('.popup-item[data-target]').forEach(item => {
+                item.addEventListener('mouseenter', () => {
+                    if (window.innerWidth > 768 && !App.state.adminPanelLocked) {
+                        cancelHide();
+                        UI.showAdminHoverPanel(item.dataset.target, adminPopup);
+                    }
+                });
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (window.innerWidth > 768) {
+                        const targetId = e.currentTarget.dataset.target;
+                        UI.showAdminHoverPanel(targetId, adminPopup, (targetPanel) => {
+                            targetPanel.classList.add('is-sticky');
+                            App.state.adminPanelLocked = true;
+                        });
+                        adminPopup.classList.remove('show');
+                    }
+                });
+            });
+
+            this.dom.admin.closeAdminMenuBtn.addEventListener('click', () => UI.toggleAdminMenuSidebar(false));
+            this.dom.admin.adminPanelBackdrop.addEventListener('click', () => {
+                UI.hideAdminSlidePanel();
+                UI.toggleAdminMenuSidebar(false);
+            });
+
+            adminPanelsContainer.querySelectorAll('.close-panel-btn').forEach(btn => {
+                btn.addEventListener('click', UI.hideAdminSlidePanel);
+            });
+            
+            this.dom.admin.addEntryPanel.saveBtn.addEventListener('click', () => this.handleAdminSave());
+            this.dom.admin.settingsPanel.testTelegramBtn.addEventListener('click', () => this.handleTestTelegram());
+            this.dom.admin.settingsPanel.telegramIdInput.addEventListener('change', (e) => this.handleSettingChange('telegramChatId', e.target.value));
+            this.dom.admin.settingsPanel.enableNotifsToggle.addEventListener('change', (e) => this.handleSettingChange('enableNotifications', e.target.checked.toString()));
+            this.dom.admin.settingsPanel.clockInReminderInput.addEventListener('change', (e) => this.handleSettingChange('clockInReminderTime', e.target.value));
+            
+            this.dom.admin.automationPanel.enableAutoClockOutToggle.addEventListener('change', e => this.handleSettingChange('enableAutoClockOut', e.target.checked.toString()));
+            this.dom.admin.automationPanel.autoClockOutDurationInput.addEventListener('change', e => this.handleSettingChange('autoClockOutDuration', e.target.value));
+            this.dom.admin.automationPanel.enableAutoEndBreakToggle.addEventListener('change', e => this.handleSettingChange('enableAutoEndBreak', e.target.checked.toString()));
+            this.dom.admin.automationPanel.autoEndBreakDurationInput.addEventListener('change', e => this.handleSettingChange('autoEndBreakDuration', e.target.value));
+            this.dom.admin.automationPanel.enableAutoEndLunchToggle.addEventListener('change', e => this.handleSettingChange('enableAutoEndLunch', e.target.checked.toString()));
+            this.dom.admin.automationPanel.autoEndLunchDurationInput.addEventListener('change', e => this.handleSettingChange('autoEndLunchDuration', e.target.value));
+            
+            this.dom.admin.automationPanel.addTimedActionBtn.addEventListener('click', () => UI.renderTimedActionTrigger());
+            this.dom.admin.automationPanel.timedActionsList.addEventListener('change', () => this.saveTimedActionTriggers());
+            this.dom.admin.automationPanel.timedActionsList.addEventListener('click', (e) => {
+                if (e.target.closest('.delete-timed-action-btn')) {
+                    e.target.closest('.timed-action-row').remove();
+                    this.saveTimedActionTriggers();
+                }
+            });
+
+            this.dom.userMenu.changePictureBtn.addEventListener('click', () => this.dom.userMenu.profilePicInput.click());
+            this.dom.userMenu.profilePicInput.addEventListener('change', (e) => this.handlePictureUpload(e));
+            this.dom.admin.generateSheetPanel.confirmBtn.addEventListener('click', () => this.handleGenerateSheet());
+            this.dom.admin.recalculatePanel.confirmBtn.addEventListener('click', () => this.handleAdminRecalculate());
+            this.dom.admin.logPanel.clearBtn.addEventListener('click', () => this.handleClearLogs());
+        }
+    },
+    async handleTimeEntry(action) {
+        const originalState = JSON.parse(JSON.stringify(this.state.currentUser));
+        UI.performOptimisticUpdate(action);
+        try { 
+            const result = await API.processTimeEntry(originalState.name, action);
+            if (!result.success && result.error) { throw new Error(result.error); }
+            const data = await API.getInitialLoadData(originalState.name);
+            if (data.initialUserData) this.setCurrentUser(data.initialUserData);
+        } catch (error) { 
+            UI.showToast(error.message, 'error');
+            this.setCurrentUser(originalState); 
+        }
+    },
+    async checkForRecentEvents() {
+        try {
+            const result = await API.getRecentAutomationEvents();
+            if (result.success && result.events && result.events.length > 0) {
+                result.events.forEach(event => {
+                    const message = `AUTOMATION: ${event.userName} - ${event.action}. (${event.reason})`;
+                    UI.showToast(message, 'info', 8000);
+                });
+            }
+        } catch (error) {
+            console.error('Failed to check for recent automation events:', error);
+        }
+    },
+    async handleClearLogs() {
+        if (confirm('Are you sure you want to clear the entire automation log? This cannot be undone.')) {
+            UI.setLoading(true);
+            try {
+                const result = await API.clearAutomationLogs();
+                if (!result.success) throw new Error(result.error || 'Failed to clear logs.');
+                UI.showToast('Automation log cleared.', 'success');
+                UI.renderAutomationLog([]);
+            } catch (error) {
+                UI.showToast(`Error: ${error.message}`, 'error');
+            } finally {
+                UI.setLoading(false);
+            }
+        }
+    }
+};
+
+const UI = {
+    renderDashboard(user) {
+        const firstName = user.name.split(' ')[0];
+        const hour = new Date().getHours();
+        let greetingText;
+        if (hour < 12) { greetingText = "Good morning"; } 
+        else if (hour < 18) { greetingText = "Good afternoon"; } 
+        else { greetingText = "Good evening"; }
+        App.dom.dashboard.greeting.textContent = `${greetingText}, ${firstName}`;
+
+        App.dom.dashboard.date.textContent = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+        this.updateLiveCounter(user.totalSecondsToday);
+        this.renderActionButtons(user.status, user.timeEntries);
+        this.renderTimeLog(user.timeEntries);
+        this.updateStatusText(user.status);
+    },
+    renderAutomationLog(logs) {
+        const container = App.dom.admin.logPanel.container;
+        if (!logs || logs.length === 0) {
+            container.innerHTML = '<p style="color: var(--color-text-secondary); text-align: center; padding: 20px 0;">No automation events have been logged.</p>';
+            return;
+        }
+
+        container.innerHTML = logs.map(log => {
+            const timestamp = new Date(log.timestamp);
+            const formattedTime = timestamp.toLocaleString(undefined, {
+                month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
+
+            return `<div class="automation-log-entry">
+                        <div class="log-meta">${formattedTime} - <strong>${log.userName}</strong></div>
+                        <div class="log-action">${log.action}</div>
+                        <div class="log-reason">${log.reason}</div>
+                    </div>`;
+        }).join('');
+    },
+};
+
+Object.assign(App, {
+    async loadInitialData(userName) {
+        UI.setLoading(true);
+        try {
+            const data = await API.getInitialLoadData(userName);
+            if (data.nameList) {
+                this.state.users = data.nameList;
+                UI.renderUserSelectionPopup(this.state.users, '');
+            }
+            if (data.initialUserData) { this.setCurrentUser(data.initialUserData); } 
+            else if (data.nameList && data.nameList.length > 0) { this.loadInitialData(data.nameList[0].name); }
+        } catch (error) { UI.showToast('Failed to load initial data.', 'error'); } 
+        finally { UI.setLoading(false); }
+    },
+    async loadTeamDataInBackground() {
+        if (this.state.isTeamDataLoading) return;
+        this.state.isTeamDataLoading = true;
+        this.state.teamDataLoadFailed = false;
+        try {
+            const result = await API.getAllUsersStatus();
+            if (result.success && result.users) {
+                const userMap = new Map(this.state.users.map(u => [u.name, u]));
+                result.users.forEach(statusUser => {
+                    if (userMap.has(statusUser.name)) {
+                        Object.assign(userMap.get(statusUser.name), statusUser);
+                    }
+                });
+                this.state.users = Array.from(userMap.values());
+                this.state.isTeamDataLoaded = true;
+
+                if (this.dom.userMenu.popup.classList.contains('show')) {
+                    UI.renderUserSelectionPopup(this.state.users, this.dom.userMenu.userSearchInput.value);
+                }
+            } else {
+                 throw new Error(result.error || 'Failed to get user statuses.');
+            }
+        } catch (e) {
+            console.error("Failed to load team data in background", e);
+            this.state.teamDataLoadFailed = true;
+            if (this.dom.userMenu.popup.classList.contains('show')) {
+                 this.dom.userMenu.userList.innerHTML = `<p style="text-align: center; color: var(--color-text-secondary); padding: 20px;">Could not load team data.</p>`;
+            }
+        } finally {
+            this.state.isTeamDataLoading = false;
+        }
+    },
+    setCurrentUser(userData) {
+        this.state.currentUser = userData;
+        this.state.initialSecondsOnLoad = userData.totalSecondsToday || 0;
+        this.state.loadTimestamp = Date.now();
+        localStorage.setItem('timetracker_selectedName', userData.name);
+        this.updateAllUI();
+        this.startLiveUpdates();
+    },
+    updateAllUI() {
+        if (!this.state.currentUser) return;
+        UI.updateUserMenu(this.state.currentUser);
+        UI.updateUserActionsPopup(this.state.currentUser);
+        UI.renderDashboard(this.state.currentUser);
+        if (this.state.isAdmin) { UI.updateSettingsPanel(this.state.currentUser.preferences); }
+    },
+    handleUserSwitch(userName) { 
+        this.loadInitialData(userName); 
+        UI.hideAllPopupsIfOutside({target: document.body});
+    },
+    toggleTheme() {
+        this.state.theme = this.state.theme === 'light' ? 'dark' : 'light';
+        localStorage.setItem('timetracker_theme', this.state.theme);
+        UI.applyTheme(this.state.theme);
+    },
+    startLiveUpdates() { 
+        if (this.state.liveUpdateInterval) clearInterval(this.state.liveUpdateInterval); 
+        this.state.liveUpdateInterval = setInterval(() => this.liveUpdateTick(), 1000); 
+    },
+    liveUpdateTick() {
+        if (this.state.currentUser?.status === 'Working') {
+            const elapsedSeconds = (Date.now() - this.state.loadTimestamp) / 1000;
+            const totalSeconds = this.state.initialSecondsOnLoad + elapsedSeconds;
+            UI.updateLiveCounter(totalSeconds);
+        }
+        
+        if (this.state.currentUser && this.state.currentUser.lastActionTimestamp) {
+            const durationTimerEl = document.getElementById('log-duration-timer');
+            if (durationTimerEl) {
+                const durationSeconds = (Date.now() - this.state.currentUser.lastActionTimestamp) / 1000;
+                const hours = Math.floor(durationSeconds / 3600);
+                const minutes = Math.floor((durationSeconds % 3600) / 60);
+                const seconds = Math.floor(durationSeconds % 60);
+                durationTimerEl.textContent = `(${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')})`;
+            }
+        }
+    },
+    handleSettingChange(key, value) { API.saveUserPreference(App.state.currentUser.name, key, value); App.state.currentUser.preferences[key] = value; },
+    handleAdminEdit(actionKey, label, currentValue) { 
+        this.state.adminEditContext = { mode: 'edit', row: this.state.currentUser.actualDataRowForStatus, actionKey: actionKey };
+        const targetId = '#admin-data-tools-panel';
+        if (window.innerWidth > 768) {
+            UI.showAdminHoverPanel(targetId, App.dom.admin.panelPopup, () => UI.prepareAdminPanel(targetId, `Edit ${label}`, currentValue));
+        } else {
+            UI.showAdminSlidePanel(targetId, () => UI.prepareAdminPanel(targetId, `Edit ${label}`, currentValue));
+        }
+    },
+    async handleAdminDelete(actionKey, label) {
+        if (confirm(`Are you sure you want to delete the "${label}" entry? This cannot be undone.`)) {
+            UI.setLoading(true);
+            try {
+                const result = await API.updateTimeEntry(this.state.currentUser.actualDataRowForStatus, actionKey, '');
+                if (!result.success) throw new Error(result.error || 'Failed to delete entry.');
+                UI.showToast(`${label} entry deleted.`, 'success');
+                await this.loadInitialData(this.state.currentUser.name);
+            } catch (error) { UI.showToast(`Error: ${error.message}`, 'error'); }
+            finally { UI.setLoading(false); }
+        }
+    },
+    async handleAdminSave() {
+        if (!this.state.adminEditContext) return;
+        const { mode, row, actionKey } = this.state.adminEditContext;
+        const finalActionKey = (mode === 'add') ? this.dom.admin.addEntryPanel.typeSelect.value : actionKey;
+        const newTimeValue = this.dom.admin.addEntryPanel.input.value;
+        UI.setLoading(true);
+        try {
+            const result = await API.updateTimeEntry(row || this.state.currentUser.actualDataRowForStatus, finalActionKey, newTimeValue);
+            if (!result.success) throw new Error(result.error || 'Failed to update entry.');
+            UI.showToast('Time entry saved successfully.', 'success');
+            await this.loadInitialData(this.state.currentUser.name);
+        } catch (error) { UI.showToast(`Error: ${error.message}`, 'error'); } 
+        finally { 
+            UI.hideAdminSlidePanel();
+            UI.setLoading(false); 
+        }
+    },
+    async handleGenerateSheet() {
+        const weekInput = this.dom.admin.generateSheetPanel.input.value;
+        if (!weekInput.trim()) {
+            UI.showToast("Please enter at least one week number.", 'error');
+            return;
+        }
+
+        const weekNumbers = weekInput.split(',')
+            .map(s => parseInt(s.trim(), 10))
+            .filter(n => !isNaN(n) && n > 0);
+
+        if (weekNumbers.length === 0) {
+            UI.showToast("Please enter valid week numbers.", 'error');
+            return;
+        }
+
+        UI.setLoading(true);
+        try {
+            const result = await API.generateWeekSheet(weekNumbers);
+            if (result.success) UI.showToast(result.message, 'success');
+            else throw new Error(result.error);
+        } catch (error) { UI.showToast(`Error: ${error.message}`, 'error'); } 
+        finally { 
+            UI.hideAdminSlidePanel();
+            UI.setLoading(false);
+        }
+    },
+    async handleAdminRecalculate() {
+        const dateValue = this.dom.admin.recalculatePanel.input.value;
+        if (!dateValue) { UI.showToast("Please select a date.", 'error'); return; }
+        const dateObj = new Date(dateValue);
+        const timezoneOffset = dateObj.getTimezoneOffset() * 60000;
+        const adjustedDate = new Date(dateObj.getTime() + timezoneOffset);
+        const dateString = `${adjustedDate.getMonth() + 1}/${adjustedDate.getDate()}/${adjustedDate.getFullYear()}`;
+        UI.setLoading(true);
+        try {
+            const result = await API.recalculateHoursForDate(this.state.currentUser.name, dateString);
+            if (result.success) { UI.showToast(`Recalculated hours for ${dateString}. New total: ${result.newTotalHours} hrs.`, 'success'); } 
+            else { throw new Error(result.error || 'Failed to recalculate.'); }
+        } catch (error) { UI.showToast(`Error: ${error.message}`, 'error'); }
+        finally {
+            UI.hideAdminSlidePanel();
+            UI.setLoading(false);
+        }
+    },
+    async handleTestTelegram() {
+        const btn = this.dom.admin.settingsPanel.testTelegramBtn;
+        const originalText = btn.textContent;
+        btn.textContent = '...'; btn.disabled = true;
+        const chatId = this.dom.admin.settingsPanel.telegramIdInput.value;
+        try {
+            const result = await API.sendTestTelegramMessage(chatId, this.state.currentUser.name);
+            if(result.success) { UI.showToast('Test message sent successfully!', 'success'); } 
+            else { throw new Error(result.error || 'Failed to send message.'); }
+        } catch (error) { UI.showToast(`Error: ${error.message}`, 'error'); } 
+        finally { btn.textContent = originalText; btn.disabled = false; }
+    },
+    handlePictureUpload(event) {
+        const file = event.target.files[0];
+        if (!file || !file.type.startsWith('image/')) return;
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            UI.setLoading(true);
+            const [header, base64Data] = e.target.result.split(',');
+            const mimeType = header.match(/:(.*?);/)[1];
+            try {
+                const result = await API.saveProfilePicture(this.state.currentUser.name, base64Data, mimeType);
+                if (result.success) {
+                    this.state.currentUser.profilePicFileId = result.fileId;
+                    UI.updateUserMenu(this.state.currentUser);
+                    UI.updateUserActionsPopup(this.state.currentUser);
+                    UI.showToast('Profile picture updated!', 'success');
+                } else { throw new Error(result.error || 'Failed to upload image.'); }
+            } catch (error) { UI.showToast(`Error: ${error.message}`, 'error'); } 
+            finally { UI.setLoading(false); }
+        };
+        reader.readAsDataURL(file);
+        event.target.value = null;
+    },
+    saveTimedActionTriggers() {
+        const triggers = [];
+        App.dom.admin.automationPanel.timedActionsList.querySelectorAll('.timed-action-row').forEach(row => {
+            triggers.push({
+                enabled: row.querySelector('.trigger-enabled').checked,
+                action: row.querySelector('.trigger-action').value,
+                time: row.querySelector('.trigger-time').value,
+            });
+        });
+        this.handleSettingChange('timedActionTriggers', JSON.stringify(triggers));
+    }
+});
+
+Object.assign(UI, {
+    setLoading: (isLoading) => App.dom.loading.classList.toggle('show', isLoading),
+    applyTheme(theme) { 
+        document.body.dataset.theme = theme; 
+        this.updateThemeIcon(theme);
+    },
+    updateThemeIcon(theme) {
+        const iconEl = App.dom.userMenu.themeIcon;
+        if (iconEl) {
+            iconEl.dataset.icon = theme === 'dark' ? 'sun' : 'moon';
+        }
+    },
+    togglePopupMenu(popup, event, trigger) {
+        event.stopPropagation();
+        const isCurrentlyVisible = popup.classList.contains('show');
+        document.querySelectorAll('.popup-menu.show').forEach(p => p.classList.remove('show'));
+        UI.hideAdminSlidePanel();
+
+        if (!isCurrentlyVisible) {
+            popup.classList.add('show');
+            const rect = trigger.getBoundingClientRect();
+            popup.style.top = `${rect.bottom + 8}px`;
+
+            if (popup.id === 'admin-panel-popup') {
+                popup.style.left = `${rect.left}px`;
+                popup.style.right = 'auto';
+            } else { 
+                popup.style.left = 'auto';
+                popup.style.right = `${window.innerWidth - rect.right}px`;
+            }
+
+            if (popup.id === 'user-actions-popup') {
+                UI.renderUserSelectionPopup(App.state.users, App.dom.userMenu.userSearchInput.value);
+            }
+        }
+    },
+    hideAllPopupsIfOutside(event) {
+        const panelsContainer = App.dom.admin.panelsContainer;
+        if (App.state.adminPanelLocked) {
+            const stickyPanel = panelsContainer.querySelector('.is-sticky');
+            if (stickyPanel && !stickyPanel.contains(event.target)) {
+                 UI.hideAdminSlidePanel();
+            }
+        }
+        document.querySelectorAll('.popup-menu.show').forEach(popup => {
+            let triggerId;
+            if (popup.id === 'user-actions-popup') triggerId = 'user-menu-trigger';
+            else if (popup.id === 'admin-panel-popup') triggerId = 'admin-panel-btn';
+
+            const trigger = document.getElementById(triggerId);
+            if (trigger && !trigger.contains(event.target) && !popup.contains(event.target) && !panelsContainer.contains(event.target)) {
+                popup.classList.remove('show');
+                 if (!App.state.adminPanelLocked) {
+                    panelsContainer.querySelectorAll('.admin-panel.show:not(.is-sticky)').forEach(p => p.classList.remove('show'));
+                }
+            }
+        });
+    },
+    updateUserMenu: (user) => { UI.updateProfilePic(App.dom.userMenu.pic, user.profilePicFileId); },
+    updateUserActionsPopup(user) {
+        const { userMenu } = App.dom;
+        this.updateProfilePic(userMenu.popupPic, user.profilePicFileId);
+        userMenu.popupName.textContent = user.name;
+    },
+    setGSheetLink: (url) => { if (App.dom.dashboard.gsheetLink) App.dom.dashboard.gsheetLink.href = url || '#'; },
+    updateLiveCounter(s) { 
+        const timeString = `${String(Math.floor(s/3600)).padStart(2,'0')}:${String(Math.floor((s%3600)/60)).padStart(2,'0')}<span class="timer-seconds">:${String(Math.floor(s%60)).padStart(2,'0')}</span>`;
+        App.dom.dashboard.counter.innerHTML = timeString;
+        if (App.state.currentUser?.status === 'Working') { document.title = `${timeString.replace(/<[^>]*>/g, '')} - Time Tracker`; }
+    },
+    updateStatusText(status) {
+        let text = ''; let title = 'Time Tracker';
+        switch(status) {
+            case 'Working': text = 'You are currently <strong class="status-text-working">Working</strong>.'; title = 'Working - Time Tracker'; break;
+            case 'OnBreak': text = 'You are currently on a <strong class="status-text-break">Break</strong>.'; title = 'On Break - Time Tracker'; break;
+            case 'OnLunch': text = 'You are currently on <strong class="status-text-break">Lunch</strong>.'; title = 'On Lunch - Time Tracker'; break;
+            case 'Offline': text = 'You are <strong class="status-text-offline">Clocked Out</strong>.'; title = 'Clocked Out - Time Tracker'; break;
+        }
+        App.dom.dashboard.statusText.innerHTML = text; document.title = title;
+    },
+    renderActionButtons(status, timeEntries) {
+        const container = App.dom.dashboard.actionBtnContainer; 
+        container.innerHTML = '';
+        const createBtn = (action, text, cssClass) => { const btn = document.createElement('button'); btn.className = `main-action-button ${cssClass}`; btn.textContent = text; btn.onclick = () => App.handleTimeEntry(action); return btn; };
+        let newBtn; const has = (key) => timeEntries && timeEntries[key] && String(timeEntries[key]).trim() !== '--';
+        if (status === 'Offline') {
+            newBtn = createBtn('clockIn', 'Clock In', 'btn-green');
+            const validation = Validation.canClockIn(timeEntries);
+            if (!validation.isValid) { newBtn.disabled = true; App.dom.dashboard.statusText.innerHTML = `<strong class="status-text-warning">${validation.message}</strong>`; } 
+            else { this.updateStatusText('Offline'); }
+        } 
+        else if (status === 'Working') {
+            if (!has('breakOut')) { newBtn = createBtn('breakOut', 'Start Break', 'btn-orange'); } 
+            else if (has('breakIn') && !has('lunchOut')) { newBtn = createBtn('lunchOut', 'Start Lunch', 'btn-orange'); } 
+            else { newBtn = createBtn('clockOut', 'Clock Out', 'btn-red'); }
+        } else if (status === 'OnBreak') { newBtn = createBtn('breakIn', 'End Break', 'btn-green'); } 
+        else if (status === 'OnLunch') { newBtn = createBtn('lunchIn', 'End Lunch', 'btn-green'); }
+        if (newBtn) { container.appendChild(newBtn); }
+    },
+    renderTimeLog(timeEntries) {
+        const logMap = [ { key: 'clockIn', label: 'Clock In', icon: 'login' }, { key: 'breakOut', label: 'Break Out', icon: 'coffee' }, { key: 'breakIn', label: 'Break In', icon: 'coffee' }, { key: 'lunchOut', label: 'Lunch Out', icon: 'utensils' }, { key: 'lunchIn', label: 'Lunch In', icon: 'utensils' }, { key: 'clockOut', label: 'Clock Out', icon: 'logout' }];
+        App.dom.dashboard.logContainer.innerHTML = logMap.map(item => {
+            const hasEntry = timeEntries && timeEntries[item.key] && timeEntries[item.key] !== '--';
+            const timeDisplay = hasEntry ? timeEntries[item.key] : '--';
+            
+            let durationSpan = '';
+            if (App.state.currentUser) {
+                const { activeLogKey } = App.state.currentUser;
+                if (item.key === activeLogKey && App.state.currentUser.status !== 'Offline' && App.state.currentUser.status !== 'Working') {
+                    durationSpan = ` <span id="log-duration-timer" class="log-duration"></span>`;
+                }
+            }
+            
+            return `<div class="log-item">
+                        <div class="log-item-info">
+                            <div class="log-icon-wrapper"><i class="icon" data-icon="${item.icon}"></i></div>
+                            <div>
+                                <div class="log-label">${item.label}</div>
+                                <div class="log-time">${timeDisplay}${durationSpan}</div>
+                            </div>
+                        </div>
+                        <div class="admin-actions">
+                            <button class="admin-action-btn" aria-label="${hasEntry ? 'Edit' : 'Add'} ${item.label} time" onclick="App.handleAdminEdit('${item.key}', '${item.label}', '${hasEntry ? timeEntries[item.key] : ''}')"><i class="icon" data-icon="${hasEntry ? 'edit' : 'plus'}"></i></button>
+                            ${hasEntry ? `<button class="admin-action-btn" aria-label="Delete ${item.label} time" onclick="App.handleAdminDelete('${item.key}', '${item.label}')"><i class="icon" data-icon="trash"></i></button>` : ''}
+                        </div>
+                    </div>`;
+        }).join('');
+    },
+    renderUserSelectionPopup(users, query = '') {
+        const listContainer = App.dom.userMenu.userList;
+        const searchTerm = query.toLowerCase();
+        
+        if (!users || users.length === 0) {
+            listContainer.innerHTML = '<div class="loading-spinner" style="margin: 40px auto;"></div>';
+            return;
+        }
+        
+        const filteredUsers = users.filter(user => user.name.toLowerCase().includes(searchTerm));
+
+        if (filteredUsers.length === 0) {
+            listContainer.innerHTML = `<p style="text-align: center; color: var(--color-text-secondary); padding: 10px 0;">No users found.</p>`;
+            return;
+        }
+
+        listContainer.innerHTML = filteredUsers.map(user => {
+            let statusPillHtml = '';
+            
+            if (user.status) {
+                let statusClass = 'status-offline';
+                let statusText = user.status;
+                if (statusText === 'Working') statusClass = 'status-working';
+                else if (statusText.includes('Break') || statusText.includes('Lunch')) statusClass = 'status-break';
+                statusPillHtml = `<span class="status-pill ${statusClass}">${statusText.replace(/([A-Z])/g, ' $1').trim()}</span>`;
+            }
+
+            return `
+            <div class="popup-user-item" data-name="${user.name}">
+                <div class="popup-user-info">
+                    <img class="profile-pic" data-pic-fileid="${user.profilePicFileId || ''}" alt="${user.name.charAt(0)}">
+                    <span>${user.name}</span>
+                </div>
+                ${statusPillHtml}
+            </div>`;
+        }).join('');
+        
+        listContainer.querySelectorAll('.popup-user-item').forEach(item => {
+            item.addEventListener('click', () => App.handleUserSwitch(item.dataset.name));
+        });
+        this.loadAllVisibleProfilePictures();
+    },
+    populateAdminMenuSidebar() {
+        const popup = App.dom.admin.panelPopup;
+        const container = App.dom.admin.menuContainer;
+        if (container.querySelector('.popup-item')) {
+            return;
+        }
+
+        container.innerHTML = '';
+
+        popup.querySelectorAll('.popup-item').forEach(item => {
+            const clone = item.cloneNode(true);
+            clone.addEventListener('click', () => {
+                const targetId = clone.dataset.target;
+                if (targetId) {
+                    this.showAdminSlidePanel(targetId);
+                    this.toggleAdminMenuSidebar(false, true);
+                }
+            });
+            container.appendChild(clone);
+        });
+    },
+    toggleAdminMenuSidebar(show, keepBackdrop = false) {
+        App.dom.admin.menuSidebar.classList.toggle('is-visible', show);
+        if (!keepBackdrop) {
+            App.dom.admin.adminPanelBackdrop.classList.toggle('is-visible', show);
+        }
+    },
+    prepareAdminPanel(panelId, ...args) {
+        switch (panelId) {
+            case '#admin-data-tools-panel': {
+                const [title, currentValue] = args;
+                this.setupAdminEntryPanel(title || 'Add Time Entry', currentValue || '');
+                App.dom.admin.recalculatePanel.input.valueAsDate = new Date();
+                break;
+            }
+            case '#admin-generate-sheet-panel':
+                 App.dom.admin.generateSheetPanel.input.value = '';
+                 break;
+            case '#admin-log-panel': {
+                App.dom.admin.logPanel.container.innerHTML = `<div class="loading-spinner" style="margin: 20px auto;"></div>`;
+                API.getAutomationLogs().then(result => {
+                    if (result.success) {
+                        UI.renderAutomationLog(result.logs);
+                    } else {
+                        App.dom.admin.logPanel.container.innerHTML = `<p style="color: var(--color-text-secondary); text-align: center;">Error loading logs.</p>`;
+                    }
+                });
+                break;
+            }
+         }
+    },
+    setupAdminEntryPanel(title, currentValue) {
+        const { addEntryPanel } = App.dom.admin;
+        addEntryPanel.titleHeader.textContent = title;
+        addEntryPanel.input.value = currentValue;
+
+        const isEditMode = App.state.adminEditContext?.mode === 'edit';
+        addEntryPanel.typeSelect.parentElement.style.display = isEditMode ? 'none' : 'flex';
+        
+        if (!isEditMode) {
+            App.state.adminEditContext = { mode: 'add' };
+            const logMap = [ { key: 'clockIn', label: 'Clock In' }, { key: 'breakOut', label: 'Break Out' }, { key: 'breakIn', label: 'Break In' }, { key: 'lunchOut', label: 'Lunch Out' }, { key: 'lunchIn', label: 'Lunch In' }, { key: 'clockOut', label: 'Clock Out' }];
+            addEntryPanel.typeSelect.innerHTML = logMap.map(i => `<option value="${i.key}">${i.label}</option>`).join('');
+        }
+    },
+    showAdminHoverPanel(targetId, popup, onShow) {
+        const { panelsContainer } = App.dom.admin;
+        const currentlyVisible = panelsContainer.querySelector('.admin-panel.show');
+        const targetPanel = panelsContainer.querySelector(targetId);
+
+        if (currentlyVisible && currentlyVisible !== targetPanel) {
+            currentlyVisible.classList.remove('show', 'is-sticky');
+        }
+
+        if (targetPanel && !targetPanel.classList.contains('show')) {
+            const popupRect = popup.getBoundingClientRect();
+            targetPanel.style.top = `${popupRect.top}px`;
+            targetPanel.style.left = `${popupRect.right + 8}px`;
+            
+            this.prepareAdminPanel(targetId);
+            targetPanel.classList.add('show');
+            if (onShow) onShow(targetPanel);
+        }
+    },
+    showAdminSlidePanel(targetId, callback) {
+        const targetPanel = App.dom.admin.panelsContainer.querySelector(targetId);
+        if(callback) callback(); else this.prepareAdminPanel(targetId);
+        targetPanel.classList.add('show');
+        App.dom.admin.adminPanelBackdrop.classList.add('is-visible');
+        App.dom.admin.panelPopup.classList.remove('show');
+    },
+    hideAdminSlidePanel() {
+        App.dom.admin.panelsContainer.querySelectorAll('.admin-panel.show').forEach(p => {
+            p.classList.remove('show', 'is-sticky');
+        });
+        App.dom.admin.adminPanelBackdrop.classList.remove('is-visible');
+        App.state.adminEditContext = null;
+        App.state.adminPanelLocked = false;
+    },
+    updateSettingsPanel(prefs) {
+        const { settingsPanel, automationPanel } = App.dom.admin;
+        settingsPanel.telegramIdInput.value = prefs.telegramChatId || '';
+        settingsPanel.enableNotifsToggle.checked = prefs.enableNotifications !== 'false';
+        settingsPanel.clockInReminderInput.value = prefs.clockInReminderTime || '';
+        
+        automationPanel.enableAutoClockOutToggle.checked = prefs.enableAutoClockOut === 'true';
+        automationPanel.autoClockOutDurationInput.value = prefs.autoClockOutDuration || '8';
+        automationPanel.enableAutoEndBreakToggle.checked = prefs.enableAutoEndBreak === 'true';
+        automationPanel.autoEndBreakDurationInput.value = prefs.autoEndBreakDuration || '15';
+        automationPanel.enableAutoEndLunchToggle.checked = prefs.enableAutoEndLunch === 'true';
+        automationPanel.autoEndLunchDurationInput.value = prefs.autoEndLunchDuration || '60';
+
+        automationPanel.timedActionsList.innerHTML = '';
+        try {
+            const triggers = JSON.parse(prefs.timedActionTriggers || '[]');
+            if (Array.isArray(triggers)) {
+                triggers.forEach(trigger => this.renderTimedActionTrigger(trigger, false));
+            }
+        } catch(e) { console.error("Could not parse timed action triggers", e); }
+    },
+    renderTimedActionTrigger(trigger = {}, doSave = true) {
+        const { timedActionsList } = App.dom.admin.automationPanel;
+        const div = document.createElement('div');
+        div.className = 'timed-action-row';
+        
+        const enabled = trigger.enabled !== false; // default to true
+        const action = trigger.action || 'clockOut';
+        const time = trigger.time || '17:00';
+
+        div.innerHTML = `
+            <input type="checkbox" class="trigger-enabled" ${enabled ? 'checked' : ''} style="height: 20px;">
+            <select class="trigger-action">
+                <option value="clockIn" ${action === 'clockIn' ? 'selected' : ''}>Clock In</option>
+                <option value="breakOut" ${action === 'breakOut' ? 'selected' : ''}>Start Break</option>
+                <option value="breakIn" ${action === 'breakIn' ? 'selected' : ''}>End Break</option>
+                <option value="lunchOut" ${action === 'lunchOut' ? 'selected' : ''}>Start Lunch</option>
+                <option value="lunchIn" ${action === 'lunchIn' ? 'selected' : ''}>End Lunch</option>
+                <option value="clockOut" ${action === 'clockOut' ? 'selected' : ''}>Clock Out</option>
+            </select>
+            <input type="time" class="trigger-time" value="${time}">
+            <button class="admin-action-btn delete-timed-action-btn"><i class="icon" data-icon="trash" style="pointer-events: none;"></i></button>
+        `;
+        timedActionsList.appendChild(div);
+        if (doSave) {
+            App.saveTimedActionTriggers();
+        }
+    },
+    performOptimisticUpdate(action) {
+        const tempState = App.state.currentUser;
+        const timeString = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+        const actions = { clockIn: 'Working', breakOut: 'OnBreak', breakIn: 'Working', lunchOut: 'OnLunch', lunchIn: 'Working', clockOut: 'Offline' };
+        if (actions[action]) {
+            tempState.status = actions[action];
+            tempState.timeEntries[action] = timeString;
+            tempState.activeLogKey = action;
+            tempState.lastActionTimestamp = Date.now();
+        }
+        this.renderDashboard(tempState);
+        App.state.loadTimestamp = Date.now();
+    },
+    async updateProfilePic(imgEl, fileId) {
+        const defaultPic = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBmaWxsPSIjOWNhM2FmIj4KICA8Y2lyY2xlIGN4PSI1MCIgY3k9IjM1IiByPSIyMCIvPgogIDxwYXRoIGQ9Ik01MCA2MCBDIDMwIDYwLCAyMCA4MCwgMjAgMTAwIEwgODAgMTAwIEMgODAgODAsIDcwIDYwLCA1MCA2MCBaIi8+Cjwvc3ZnPg==';
+        imgEl.src = defaultPic; if (!fileId || fileId === 'null') return;
+        try { const { dataUrl } = await API.getProfilePicDataUrl(fileId); imgEl.src = dataUrl; } catch {}
+    },
+    loadAllVisibleProfilePictures() { document.querySelectorAll('img.profile-pic[data-pic-fileid]').forEach(img => this.updateProfilePic(img, img.dataset.picFileId)); },
+    showToast(message, type = 'info', duration = 4000) {
+        const container = document.getElementById('toast-container'); const toast = document.createElement('div');
+        toast.className = `toast-message toast-${type}`; toast.textContent = message;
+        container.appendChild(toast);
+        setTimeout(() => toast.classList.add('show'), 10);
+        setTimeout(() => { toast.classList.remove('show'); toast.addEventListener('transitionend', () => toast.remove()); }, duration);
+    }
+});
+
+const API = {
+    _run: (fn, ...a) => new Promise((res, rej) => google.script.run.withSuccessHandler(res).withFailureHandler(rej)[fn](...a)),
+    getInitialLoadData: (n) => API._run('getInitialLoadData', n),
+    getAllUsersStatus: () => API._run('getAllUsersStatus'),
+    processTimeEntry: (name, action) => API._run('processTimeEntry', name, action),
+    getProfilePicDataUrl: (id) => API._run('getProfilePicDataUrlForFileId', id),
+    getSpreadsheetUrl: () => API._run('getSpreadsheetUrl'),
+    updateTimeEntry: (row, key, time) => API._run('updateTimeEntry', row, key, time),
+    deleteTimeEntry: (row, key) => API._run('deleteTimeEntry', row, key),
+    recalculateHoursForDate: (name, date) => API._run('recalculateHoursForDate', name, date),
+    sendTestTelegramMessage: (id, name) => API._run('sendTestTelegramMessage', id, name),
+    sendEightHourReminder: (name) => API._run('sendEightHourReminder', name),
+    saveProfilePicture: (name, data, type) => API._run('saveProfilePicture', name, data, type),
+    generateWeekSheet: (weeks) => API._run('generateWeekSheet', weeks),
+    saveUserPreference: (name, key, val) => API._run('saveUserPreference', name, key, val),
+    getAutomationLogs: () => API._run('getAutomationLogs'),
+    clearAutomationLogs: () => API._run('clearAutomationLogs'),
+    getRecentAutomationEvents: () => API._run('getRecentAutomationEvents')
+};
+
+document.addEventListener('DOMContentLoaded', () => App.init());
+</script>
+</body>
+</html>
