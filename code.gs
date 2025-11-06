@@ -336,7 +336,7 @@ function runDailyChecks() {
 }
 
 function getInitialLoadData(userName) {
-  const result = { success: false, nameList: [], initialUserData: null, error: null };
+  const result = { success: false, nameList: [], initialUserData: null, dynamicGreeting: null, error: null };
   try {
     const allUsersResult = getAllUsersStatus();
     if (!allUsersResult.success) {
@@ -349,6 +349,7 @@ function getInitialLoadData(userName) {
       if (profileDataResult.success) {
         result.initialUserData = profileDataResult.data;
       }
+      result.dynamicGreeting = getDynamicGreeting(initialUserName);
     }
     result.success = true;
   } catch (e) {
@@ -531,6 +532,92 @@ function getTodaysCalendarEvents() {
 }
 
 function sanitizeKey_(inputString) { return inputString ? inputString.trim().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '') : null; }
+
+function getDynamicGreeting(userName) {
+  try {
+    const now = new Date();
+    const hour = now.getHours();
+    const dayOfWeek = now.getDay(); // 0 = Sunday, 6 = Saturday
+    const month = now.getMonth(); // 0 = January
+    const date = now.getDate();
+    const firstName = userName ? userName.split(' ')[0] : 'there';
+
+    // Philippine Holidays (with flexible date checking)
+    const philippineHolidays = [
+      { month: 0, date: 1, greeting: '🎊 Happy New Year' },
+      { month: 1, date: 14, greeting: '💝 Happy Valentine\'s Day' },
+      { month: 1, date: 25, greeting: '💛 Happy EDSA People Power Anniversary' },
+      { month: 3, date: 9, greeting: '🕊️ Happy Araw ng Kagitingan' },
+      { month: 4, date: 1, greeting: '👷 Happy Labor Day' },
+      { month: 5, date: 12, greeting: '🇵🇭 Happy Independence Day' },
+      { month: 7, date: 21, greeting: '🦸 Happy Ninoy Aquino Day' },
+      { month: 7, date: 26, greeting: '🦸 Happy National Heroes Day' },
+      { month: 10, date: 1, greeting: '🎃 Happy All Saints\' Day' },
+      { month: 10, date: 30, greeting: '🦸 Happy Bonifacio Day' },
+      { month: 11, date: 8, greeting: '🌟 Happy Feast of the Immaculate Conception' },
+      { month: 11, date: 24, greeting: '🎄 Merry Christmas Eve' },
+      { month: 11, date: 25, greeting: '🎅 Merry Christmas' },
+      { month: 11, date: 26, greeting: '🎁 Happy Boxing Day' },
+      { month: 11, date: 30, greeting: '🎊 Happy Rizal Day' },
+      { month: 11, date: 31, greeting: '🎆 Happy New Year\'s Eve' }
+    ];
+
+    // Check for holidays (including day before for early greetings)
+    for (const holiday of philippineHolidays) {
+      if (month === holiday.month && date === holiday.date) {
+        return { greeting: holiday.greeting, name: firstName };
+      }
+      // Day before major holidays
+      if (month === holiday.month && date === holiday.date - 1) {
+        if ([11, 0].includes(holiday.month) && [24, 25, 31, 1].includes(holiday.date)) {
+          return { greeting: `${holiday.greeting} tomorrow! 🎉`, name: firstName };
+        }
+      }
+    }
+
+    // Check for special weeks
+    if (month === 11 && date >= 16 && date <= 24) {
+      return { greeting: '🎄 Merry Christmas season', name: firstName };
+    }
+
+    // Day-specific greetings
+    const dayGreetings = {
+      0: '☀️ Happy Sunday',       // Sunday
+      1: '💪 Happy Monday',        // Monday
+      2: '🚀 Happy Tuesday',       // Tuesday
+      3: '⚡ Happy Wednesday',     // Wednesday
+      4: '🎯 Happy Thursday',      // Thursday
+      5: '🎉 Happy Friday',        // Friday
+      6: '🌟 Happy Saturday'       // Saturday
+    };
+
+    // Time-based greetings
+    let timeGreeting;
+    if (hour >= 5 && hour < 12) {
+      timeGreeting = 'Good morning';
+    } else if (hour >= 12 && hour < 13) {
+      timeGreeting = 'Good noon';
+    } else if (hour >= 13 && hour < 18) {
+      timeGreeting = 'Good afternoon';
+    } else if (hour >= 18 && hour < 22) {
+      timeGreeting = 'Good evening';
+    } else {
+      timeGreeting = 'Good night';
+    }
+
+    // Combine: "Good morning! Happy Friday" or just "Good morning"
+    // Use day greeting on Friday (most exciting) and weekends
+    if ([5, 6, 0].includes(dayOfWeek)) {
+      return { greeting: `${timeGreeting}! ${dayGreetings[dayOfWeek]}`, name: firstName };
+    } else {
+      return { greeting: timeGreeting, name: firstName };
+    }
+
+  } catch (e) {
+    Logger.log(`Error in getDynamicGreeting: ${e.toString()}`);
+    return { greeting: 'Hello', name: userName || 'there' };
+  }
+}
 function getUserPreferences_(name) { const defaultPrefs = {}; const userKeyPart = sanitizeKey_(name); if (!userKeyPart) return defaultPrefs; const scriptProps = PropertiesService.getScriptProperties(); const propKey = `user_prefs_${userKeyPart}`; const jsonString = scriptProps.getProperty(propKey); if (jsonString) { try { return JSON.parse(jsonString); } catch (e) { return defaultPrefs; } } return defaultPrefs; }
 function saveUserPreference(userName, key, value) {
   if (!userName || !key) return { success: false };
