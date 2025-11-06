@@ -856,14 +856,91 @@ function checkAutomationStatus() {
   }
 }
 
+function debugTimedActions(userName) {
+  if (!isSuperAdmin_()) {
+    return { success: false, error: 'Permission denied.' };
+  }
+
+  try {
+    const now = new Date();
+    const prefs = getUserPreferences_(userName);
+    const profileResult = getUserProfileData(userName);
+
+    if (!profileResult.success) {
+      return { success: false, error: 'Could not get user profile data.' };
+    }
+
+    const profileData = profileResult.data;
+    const todayStr = now.toISOString().slice(0, 10);
+    const scriptProps = PropertiesService.getScriptProperties();
+
+    let debugInfo = {
+      success: true,
+      currentTime: now.toLocaleTimeString(),
+      userName: userName,
+      userStatus: profileData.status,
+      timedActionTriggers: null,
+      triggerStates: []
+    };
+
+    if (!prefs.timedActionTriggers) {
+      debugInfo.message = 'No timed action triggers found for this user.';
+      return debugInfo;
+    }
+
+    const triggers = JSON.parse(prefs.timedActionTriggers);
+    debugInfo.timedActionTriggers = triggers;
+
+    triggers.forEach(trigger => {
+      const [triggerHour, triggerMinute] = trigger.time.split(':').map(Number);
+      const triggerTime = new Date(now);
+      triggerTime.setHours(triggerHour, triggerMinute, 0, 0);
+      const windowEnd = new Date(triggerTime.getTime() + 60 * 60 * 1000);
+
+      const keyPart = sanitizeKey_(userName) + '_' + trigger.action + '_' + trigger.time.replace(':', '');
+      const hasRunKey = `timedActionRan_${keyPart}_${todayStr}`;
+      const randomTimeKey = `timedActionRandomTime_${keyPart}_${todayStr}`;
+
+      const hasRun = scriptProps.getProperty(hasRunKey);
+      const randomTime = scriptProps.getProperty(randomTimeKey);
+
+      const triggerState = {
+        action: trigger.action,
+        time: trigger.time,
+        enabled: trigger.enabled,
+        triggerTime: triggerTime.toLocaleTimeString(),
+        windowEnd: windowEnd.toLocaleTimeString(),
+        inWindow: (now >= triggerTime && now < windowEnd),
+        hasRunToday: !!hasRun,
+        randomExecutionTime: randomTime ? new Date(parseInt(randomTime)).toLocaleTimeString() : 'Not generated yet',
+        shouldExecuteNow: false
+      };
+
+      if (randomTime) {
+        const targetTime = parseInt(randomTime);
+        triggerState.shouldExecuteNow = (now.getTime() >= targetTime && !hasRun && trigger.enabled);
+      }
+
+      debugInfo.triggerStates.push(triggerState);
+    });
+
+    return debugInfo;
+  } catch (e) {
+    return { success: false, error: e.message, stack: e.stack };
+  }
+}
+
 function runAutomations() {
+  const now = new Date();
+  Logger.log(`========== AUTOMATION RUN START: ${now.toLocaleString()} ==========`);
+
   const allUsersResult = getAllUsersStatus();
   if (!allUsersResult.success) {
     Logger.log("AUTOMATION: Failed to get user statuses. Aborting.");
     return;
   }
-  
-  const now = new Date();
+
+  Logger.log(`AUTOMATION: Processing ${allUsersResult.users.length} user(s)`);
   const todayStr = now.toISOString().slice(0, 10);
 
   allUsersResult.users.forEach(user => {
@@ -957,16 +1034,27 @@ function handleAutoEndTimers_(profileData, prefs) {
 }
 
 function handleTimedActions_(profileData, prefs, now) {
-  if (!prefs.timedActionTriggers) return;
+  if (!prefs.timedActionTriggers) {
+    Logger.log(`AUTOMATION: No timed action triggers for ${profileData.name}`);
+    return;
+  }
   try {
     const triggers = JSON.parse(prefs.timedActionTriggers);
-    if (!Array.isArray(triggers)) return;
+    if (!Array.isArray(triggers)) {
+      Logger.log(`AUTOMATION: Timed action triggers not an array for ${profileData.name}`);
+      return;
+    }
+
+    Logger.log(`AUTOMATION: Checking ${triggers.length} timed action(s) for ${profileData.name} at ${now.toLocaleTimeString()}`);
 
     const todayStr = now.toISOString().slice(0, 10);
     const scriptProps = PropertiesService.getScriptProperties();
 
     triggers.forEach(trigger => {
-      if (!trigger.enabled || !trigger.time) return;
+      if (!trigger.enabled || !trigger.time) {
+        Logger.log(`AUTOMATION: Skipping disabled or malformed trigger for ${profileData.name}: ${JSON.stringify(trigger)}`);
+        return;
+      }
 
       const [triggerHour, triggerMinute] = trigger.time.split(':').map(Number);
 
@@ -977,12 +1065,20 @@ function handleTimedActions_(profileData, prefs, now) {
       // Create the window end time (trigger time + 60 minutes)
       const windowEnd = new Date(triggerTime.getTime() + 60 * 60 * 1000);
 
+      Logger.log(`AUTOMATION: ${profileData.name} ${trigger.action} - Trigger: ${triggerTime.toLocaleTimeString()}, Window: ${triggerTime.toLocaleTimeString()} to ${windowEnd.toLocaleTimeString()}, Current: ${now.toLocaleTimeString()}`);
+
       // Check if we're within the execution window
-      if (now < triggerTime || now >= windowEnd) return;
+      if (now < triggerTime || now >= windowEnd) {
+        Logger.log(`AUTOMATION: Outside execution window for ${profileData.name} ${trigger.action}`);
+        return;
+      }
 
       const keyPart = sanitizeKey_(profileData.name) + '_' + trigger.action + '_' + trigger.time.replace(':', '');
       const hasRunKey = `timedActionRan_${keyPart}_${todayStr}`;
-      if (scriptProps.getProperty(hasRunKey)) return;
+      if (scriptProps.getProperty(hasRunKey)) {
+        Logger.log(`AUTOMATION: Already ran today for ${profileData.name} ${trigger.action}`);
+        return;
+      }
 
       // Get or generate the random execution time for this trigger
       const randomTimeKey = `timedActionRandomTime_${keyPart}_${todayStr}`;
@@ -995,34 +1091,48 @@ function handleTimedActions_(profileData, prefs, now) {
         const randomTime = new Date(triggerTime.getTime() + randomMinutes * 60000 + randomSeconds * 1000);
         randomExecutionTime = randomTime.getTime().toString();
         scriptProps.setProperty(randomTimeKey, randomExecutionTime, 21600); // Expires in 6 hours
-        Logger.log(`AUTOMATION: Generated random execution time for ${profileData.name} ${trigger.action}: ${new Date(parseInt(randomExecutionTime)).toLocaleTimeString()}`);
+        Logger.log(`AUTOMATION: Generated random execution time for ${profileData.name} ${trigger.action}: ${new Date(parseInt(randomExecutionTime)).toLocaleTimeString()} (${randomMinutes}m ${randomSeconds}s into window)`);
+      } else {
+        Logger.log(`AUTOMATION: Using existing random time for ${profileData.name} ${trigger.action}: ${new Date(parseInt(randomExecutionTime)).toLocaleTimeString()}`);
       }
 
       const targetExecutionTime = parseInt(randomExecutionTime);
 
       // Check if it's time to execute (we've passed the random execution time)
-      if (now.getTime() < targetExecutionTime) return;
+      if (now.getTime() < targetExecutionTime) {
+        Logger.log(`AUTOMATION: Not yet time to execute ${profileData.name} ${trigger.action}. Waiting until ${new Date(targetExecutionTime).toLocaleTimeString()}`);
+        return;
+      }
+
+      Logger.log(`AUTOMATION: Time reached for ${profileData.name} ${trigger.action}. Checking status...`);
 
       const { status, name } = profileData;
       const action = trigger.action;
       let canExecute = false;
+      let requiredStatus = '';
 
       switch (action) {
           case 'clockIn':
               canExecute = (status === 'Offline');
+              requiredStatus = 'Offline';
               break;
           case 'breakOut':
           case 'lunchOut':
           case 'clockOut':
               canExecute = (status === 'Working');
+              requiredStatus = 'Working';
               break;
           case 'breakIn':
               canExecute = (status === 'OnBreak');
+              requiredStatus = 'OnBreak';
               break;
           case 'lunchIn':
               canExecute = (status === 'OnLunch');
+              requiredStatus = 'OnLunch';
               break;
       }
+
+      Logger.log(`AUTOMATION: Status check for ${name} ${action} - Current: ${status}, Required: ${requiredStatus}, Can execute: ${canExecute}`);
 
       if (canExecute) {
           const actionTimestamp = new Date(targetExecutionTime);
