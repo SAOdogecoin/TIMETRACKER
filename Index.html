@@ -69,17 +69,7 @@
       justify-content: center;
   }
   
-  .dashboard-content::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: var(--color-bg);
-      opacity: 0.4;
-      z-index: -1;
-      display: none;
-  }
-  body.has-custom-bg .dashboard-content::before { display: block; }
-  body.has-custom-bg[data-theme="dark"] .dashboard-content::before { background: #111113; opacity: 0.6; }
+  /* Remove the semi-transparent overlay - backgrounds now show directly */
 
   #loading-indicator { position: fixed; inset: 0; background: rgba(255, 255, 255, 0.7); display: flex; align-items: center; justify-content: center; z-index: 9999; opacity: 0; visibility: hidden; transition: opacity 0.2s; }
   body[data-theme="dark"] #loading-indicator { background: rgba(2, 6, 23, 0.7); }
@@ -448,59 +438,66 @@
     letter-spacing: 0.5px;
   }
 
-  /* Theme Cards Grid */
+  /* Theme Cards Grid - Chrome style */
   .theme-cards-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 12px;
     margin-bottom: 16px;
   }
 
   .theme-card {
     aspect-ratio: 1;
-    border-radius: var(--radius-md);
+    border-radius: 16px;
     border: 2px solid var(--color-border);
     cursor: pointer;
     transition: all 0.2s;
     position: relative;
     overflow: hidden;
-    background: linear-gradient(135deg, var(--theme-primary, #ddd) 0%, var(--theme-secondary, #eee) 100%);
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-surface);
   }
   .theme-card:hover {
-    border-color: var(--color-brand);
+    border-color: var(--color-text-secondary);
     transform: scale(1.05);
   }
   .theme-card.active {
-    border-color: var(--color-brand);
+    border-color: var(--color-text-primary);
     border-width: 3px;
   }
   .theme-card.active::after {
     content: '✓';
     position: absolute;
-    bottom: 4px;
-    right: 4px;
-    background: var(--color-brand);
-    color: white;
-    width: 20px;
-    height: 20px;
+    bottom: 6px;
+    right: 6px;
+    background: var(--color-text-primary);
+    color: var(--color-surface);
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: bold;
   }
 
-  .theme-card-label {
-    position: absolute;
-    bottom: 6px;
-    left: 6px;
-    font-size: 10px;
-    font-weight: 600;
-    color: rgba(0, 0, 0, 0.6);
-    background: rgba(255, 255, 255, 0.9);
-    padding: 2px 6px;
-    border-radius: 4px;
+  .theme-card-colors {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .theme-color-circle {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
 
   /* Color Pickers */
@@ -876,6 +873,28 @@
         </button>
     </div>
     <div class="customize-content">
+        <!-- Appearance Section (Dark/Light Mode) -->
+        <div class="customize-section">
+            <h4 class="customize-section-title">Appearance</h4>
+            <div style="display: flex; gap: 12px;">
+                <button id="light-mode-btn" class="reset-btn" style="flex: 1; margin-top: 0;">Light</button>
+                <button id="dark-mode-btn" class="reset-btn" style="flex: 1; margin-top: 0;">Dark</button>
+            </div>
+        </div>
+
+        <!-- Background Section -->
+        <div class="customize-section">
+            <h4 class="customize-section-title">Background</h4>
+            <div class="background-grid" id="background-grid">
+                <div class="background-card upload-card" id="upload-background-card">
+                    <i class="icon" data-icon="image"></i>
+                    <span>Upload</span>
+                </div>
+                <!-- Background cards will be populated here -->
+            </div>
+            <button id="reset-background-btn" class="reset-btn">Remove Background</button>
+        </div>
+
         <!-- Color & Theme Section -->
         <div class="customize-section">
             <h4 class="customize-section-title">Color & Theme</h4>
@@ -903,19 +922,6 @@
             </div>
             <button id="reset-colors-btn" class="reset-btn">Reset to Default</button>
         </div>
-
-        <!-- Background Section -->
-        <div class="customize-section">
-            <h4 class="customize-section-title">Background</h4>
-            <div class="background-grid" id="background-grid">
-                <div class="background-card upload-card" id="upload-background-card">
-                    <i class="icon" data-icon="image"></i>
-                    <span>Upload</span>
-                </div>
-                <!-- Background cards will be populated here -->
-            </div>
-            <button id="reset-background-btn" class="reset-btn">Remove Background</button>
-        </div>
     </div>
 </aside>
 
@@ -931,9 +937,6 @@
             </button>
         </div>
         <h2 id="user-popup-name" class="user-popup-name"></h2>
-        <button id="theme-toggle-btn" class="theme-toggle-btn" aria-label="Toggle theme">
-            <i class="icon" id="theme-icon"></i>
-        </button>
     </div>
     <div class="popup-search-wrapper">
         <input type="search" id="user-search-input" placeholder="Search team...">
@@ -1145,9 +1148,7 @@ const App = {
                 changePictureBtn: document.getElementById('change-picture-btn'),
                 profilePicInput: document.getElementById('profile-pic-input'),
                 popupPic: document.getElementById('user-popup-pic'),
-                popupName: document.getElementById('user-popup-name'),
-                themeToggleBtn: document.getElementById('theme-toggle-btn'),
-                themeIcon: document.getElementById('theme-icon')
+                popupName: document.getElementById('user-popup-name')
             },
             dashboard: { 
                 greeting: document.getElementById('greeting-title'), date: document.getElementById('current-date'), 
@@ -1225,7 +1226,6 @@ const App = {
     bindEventListeners() {
         document.addEventListener('click', (e) => UI.hideAllPopupsIfOutside(e));
         this.dom.userMenu.trigger.addEventListener('click', (e) => UI.togglePopupMenu(this.dom.userMenu.popup, e, this.dom.userMenu.trigger));
-        this.dom.userMenu.themeToggleBtn.addEventListener('click', () => this.toggleTheme());
         this.dom.userMenu.userSearchInput.addEventListener('input', (e) => UI.renderUserSelectionPopup(this.state.users, e.target.value));
         
         this.dom.announcement.closeBtn.addEventListener('click', (e) => {
@@ -1240,6 +1240,10 @@ const App = {
             Customize.toggleSidebar(false);
             UI.toggleAdminMenuSidebar(false);
         });
+
+        // Light/Dark mode buttons
+        document.getElementById('light-mode-btn').addEventListener('click', () => this.setTheme('light'));
+        document.getElementById('dark-mode-btn').addEventListener('click', () => this.setTheme('dark'));
 
         // Color pickers
         this.dom.customize.colorBrand.addEventListener('input', (e) => Customize.applyCustomColor('--color-brand', e.target.value));
@@ -1503,10 +1507,16 @@ Object.assign(App, {
         this.loadInitialData(userName); 
         UI.hideAllPopupsIfOutside({target: document.body});
     },
-    toggleTheme() {
-        this.state.theme = this.state.theme === 'light' ? 'dark' : 'light';
-        localStorage.setItem('timetracker_theme', this.state.theme);
-        UI.applyTheme(this.state.theme);
+    setTheme(theme) {
+        this.state.theme = theme;
+        localStorage.setItem('timetracker_theme', theme);
+        UI.applyTheme(theme);
+
+        // Reapply color theme if one is selected
+        const saved = Customize.getSavedCustomization();
+        if (saved.selectedTheme) {
+            Customize.applyTheme(saved.selectedTheme);
+        }
     },
     startLiveUpdates() { 
         if (this.state.liveUpdateInterval) clearInterval(this.state.liveUpdateInterval); 
@@ -1696,15 +1706,8 @@ Object.assign(App, {
 
 Object.assign(UI, {
     setLoading: (isLoading) => App.dom.loading.classList.toggle('show', isLoading),
-    applyTheme(theme) { 
-        document.body.dataset.theme = theme; 
-        this.updateThemeIcon(theme);
-    },
-    updateThemeIcon(theme) {
-        const iconEl = App.dom.userMenu.themeIcon;
-        if (iconEl) {
-            iconEl.dataset.icon = theme === 'dark' ? 'sun' : 'moon';
-        }
+    applyTheme(theme) {
+        document.body.dataset.theme = theme;
     },
     togglePopupMenu(popup, event, trigger) {
         event.stopPropagation();
@@ -2066,12 +2069,14 @@ Object.assign(UI, {
 
 const Customize = {
     themes: [
-        { id: 'blue', name: 'Blue', primary: '#0071dc', secondary: '#4da3ff' },
-        { id: 'purple', name: 'Purple', primary: '#7c3aed', secondary: '#a78bfa' },
-        { id: 'pink', name: 'Pink', primary: '#ec4899', secondary: '#f472b6' },
-        { id: 'green', name: 'Green', primary: '#10b981', secondary: '#34d399' },
-        { id: 'orange', name: 'Orange', primary: '#f97316', secondary: '#fb923c' },
-        { id: 'teal', name: 'Teal', primary: '#14b8a6', secondary: '#2dd4bf' }
+        { id: 'blue', colors: ['#0071dc', '#4da3ff', '#0052a3'] },
+        { id: 'purple', colors: ['#7c3aed', '#a78bfa', '#5b21b6'] },
+        { id: 'pink', colors: ['#ec4899', '#f472b6', '#be185d'] },
+        { id: 'green', colors: ['#10b981', '#34d399', '#047857'] },
+        { id: 'orange', colors: ['#f97316', '#fb923c', '#c2410c'] },
+        { id: 'teal', colors: ['#14b8a6', '#2dd4bf', '#0f766e'] },
+        { id: 'red', colors: ['#ef4444', '#f87171', '#b91c1c'] },
+        { id: 'indigo', colors: ['#6366f1', '#818cf8', '#4338ca'] }
     ],
 
     init() {
@@ -2083,9 +2088,10 @@ const Customize = {
     renderThemeCards() {
         const grid = App.dom.customize.themeCardsGrid;
         grid.innerHTML = this.themes.map(theme => `
-            <div class="theme-card" data-theme-id="${theme.id}"
-                 style="--theme-primary: ${theme.primary}; --theme-secondary: ${theme.secondary}">
-                <span class="theme-card-label">${theme.name}</span>
+            <div class="theme-card" data-theme-id="${theme.id}">
+                <div class="theme-card-colors">
+                    ${theme.colors.map(color => `<div class="theme-color-circle" style="background-color: ${color};"></div>`).join('')}
+                </div>
             </div>
         `).join('');
 
@@ -2101,8 +2107,25 @@ const Customize = {
         const theme = this.themes.find(t => t.id === themeId);
         if (!theme) return;
 
-        document.documentElement.style.setProperty('--color-brand', theme.primary);
-        App.dom.customize.colorBrand.value = theme.primary;
+        const currentTheme = document.body.dataset.theme;
+        const isDark = currentTheme === 'dark';
+
+        // Apply comprehensive theming with hue variations
+        const [primary, secondary, tertiary] = theme.colors;
+
+        // Main colors
+        document.documentElement.style.setProperty('--color-brand', primary);
+
+        // Surface colors (lighter/darker based on theme)
+        if (isDark) {
+            document.documentElement.style.setProperty('--color-surface', this.adjustBrightness(tertiary, -70));
+            document.documentElement.style.setProperty('--color-surface-secondary', this.adjustBrightness(tertiary, -80));
+            document.documentElement.style.setProperty('--color-bg', this.adjustBrightness(tertiary, -85));
+        } else {
+            document.documentElement.style.setProperty('--color-surface', '#FFFFFF');
+            document.documentElement.style.setProperty('--color-surface-secondary', this.adjustBrightness(secondary, 85));
+            document.documentElement.style.setProperty('--color-bg', this.adjustBrightness(secondary, 90));
+        }
 
         // Update active state
         App.dom.customize.themeCardsGrid.querySelectorAll('.theme-card').forEach(card => {
@@ -2110,8 +2133,20 @@ const Customize = {
         });
 
         // Save preference
-        this.saveCustomization({ selectedTheme: themeId, customColors: { brand: theme.primary } });
-        UI.showToast(`${theme.name} theme applied!`, 'success');
+        this.saveCustomization({ selectedTheme: themeId, customColors: null });
+        UI.showToast(`Theme applied!`, 'success');
+    },
+
+    adjustBrightness(color, percent) {
+        const num = parseInt(color.replace('#', ''), 16);
+        const amt = Math.round(2.55 * percent);
+        const R = (num >> 16) + amt;
+        const G = (num >> 8 & 0x00FF) + amt;
+        const B = (num & 0x0000FF) + amt;
+        return '#' + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+            (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+            (B < 255 ? B < 1 ? 0 : B : 255))
+            .toString(16).slice(1);
     },
 
     applyCustomColor(cssVar, value) {
@@ -2187,26 +2222,88 @@ const Customize = {
         document.body.style.backgroundImage = bgImage;
         document.body.classList.add('has-custom-bg');
 
+        // Extract image URL from bgImage string
+        const urlMatch = bgImage.match(/url\(['"]?([^'"]+)['"]?\)/);
+        if (urlMatch && urlMatch[1]) {
+            this.detectImageBrightness(urlMatch[1]);
+        }
+
         // Update active state
         App.dom.customize.backgroundGrid.querySelectorAll('.background-card').forEach(card => {
             card.classList.toggle('active', card.dataset.bgId === bgId);
         });
 
-        this.saveCustomization({ ...this.getSavedCustomization(), selectedBackground: bgId });
+        this.saveCustomization({ ...this.getSavedCustomization(), selectedBackground: bgId, backgroundImage: bgImage });
         UI.showToast('Background applied!', 'success');
     },
 
     removeBackground() {
         document.body.style.backgroundImage = '';
         document.body.classList.remove('has-custom-bg');
+        document.body.classList.remove('dark-bg');
+
+        // Reset to default text colors based on light/dark mode
+        const isDark = document.body.dataset.theme === 'dark';
+        if (isDark) {
+            document.documentElement.style.setProperty('--color-text-primary', '#F4F4F5');
+            document.documentElement.style.setProperty('--color-text-secondary', '#A1A1AA');
+        } else {
+            document.documentElement.style.setProperty('--color-text-primary', '#18181B');
+            document.documentElement.style.setProperty('--color-text-secondary', '#71717A');
+        }
 
         // Remove active state
         App.dom.customize.backgroundGrid.querySelectorAll('.background-card').forEach(card => {
             card.classList.remove('active');
         });
 
-        this.saveCustomization({ ...this.getSavedCustomization(), selectedBackground: null });
+        this.saveCustomization({ ...this.getSavedCustomization(), selectedBackground: null, backgroundImage: null });
         UI.showToast('Background removed!', 'success');
+    },
+
+    detectImageBrightness(imageUrl) {
+        const img = new Image();
+        img.crossOrigin = 'Anonymous';
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+
+            try {
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+                let colorSum = 0;
+
+                for (let i = 0; i < data.length; i += 4) {
+                    const r = data[i];
+                    const g = data[i + 1];
+                    const b = data[i + 2];
+                    colorSum += (r + g + b) / 3;
+                }
+
+                const brightness = colorSum / (data.length / 4);
+                const isDark = brightness < 128;
+
+                // Apply text colors based on background brightness
+                if (isDark) {
+                    document.body.classList.add('dark-bg');
+                    document.documentElement.style.setProperty('--color-text-primary', '#F4F4F5');
+                    document.documentElement.style.setProperty('--color-text-secondary', '#E4E4E7');
+                } else {
+                    document.body.classList.remove('dark-bg');
+                    document.documentElement.style.setProperty('--color-text-primary', '#18181B');
+                    document.documentElement.style.setProperty('--color-text-secondary', '#52525B');
+                }
+            } catch (e) {
+                console.log('Could not analyze image brightness:', e);
+            }
+        };
+        img.onerror = () => {
+            console.log('Failed to load image for brightness detection');
+        };
+        img.src = imageUrl;
     },
 
     async handleBackgroundUpload(event) {
@@ -2265,13 +2362,7 @@ const Customize = {
 
         // Apply saved theme
         if (saved.selectedTheme) {
-            const theme = this.themes.find(t => t.id === saved.selectedTheme);
-            if (theme) {
-                document.documentElement.style.setProperty('--color-brand', theme.primary);
-                App.dom.customize.themeCardsGrid.querySelectorAll('.theme-card').forEach(card => {
-                    card.classList.toggle('active', card.dataset.themeId === saved.selectedTheme);
-                });
-            }
+            this.applyTheme(saved.selectedTheme);
         }
 
         // Apply saved custom colors
@@ -2287,15 +2378,11 @@ const Customize = {
             });
         }
 
-        // Apply saved background
-        if (saved.selectedBackground) {
-            // Background will be loaded and applied after loadBackgrounds() completes
+        // Apply saved background with image data
+        if (saved.selectedBackground && saved.backgroundImage) {
             setTimeout(() => {
-                const bgCard = App.dom.customize.backgroundGrid.querySelector(`[data-bg-id="${saved.selectedBackground}"]`);
-                if (bgCard) {
-                    this.applyBackground(saved.selectedBackground, bgCard.style.backgroundImage);
-                }
-            }, 1000);
+                this.applyBackground(saved.selectedBackground, saved.backgroundImage);
+            }, 500);
         }
     }
 };
