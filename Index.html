@@ -393,7 +393,234 @@
   [data-icon="automation"] { -webkit-mask-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"%3E%3Cpath d="M12 20V10"%3E%3C/path%3E%3Cpath d="M12 10l-2.5 2.5"%3E%3C/path%3E%3Cpath d="M12 10l2.5 2.5"%3E%3C/path%3E%3Cpath d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16z"%3E%3C/path%3E%3Cpath d="M12 14.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"%3E%3C/path%3E%3C/svg%3E');}
   [data-icon="history"] { -webkit-mask-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"%3E%3Cpath d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"%3E%3C/path%3E%3Cpath d="M12 8v4l2 2"%3E%3C/path%3E%3C/svg%3E');}
   [data-icon="shield"] { -webkit-mask-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"%3E%3Cpath d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"%3E%3C/path%3E%3C/svg%3E');}
-  
+  [data-icon="palette"] { -webkit-mask-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"%3E%3Ccircle cx="13.5" cy="6.5" r=".5"%3E%3C/circle%3E%3Ccircle cx="17.5" cy="10.5" r=".5"%3E%3C/circle%3E%3Ccircle cx="8.5" cy="7.5" r=".5"%3E%3C/circle%3E%3Ccircle cx="6.5" cy="12.5" r=".5"%3E%3C/circle%3E%3Cpath d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"%3E%3C/path%3E%3C/svg%3E');}
+
+  /* ===== START: CUSTOMIZATION PANEL CSS ===== */
+  .customize-sidebar {
+    width: 380px;
+    flex-shrink: 0;
+    background: var(--color-surface);
+    border-left: 1px solid var(--color-border);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    right: 0;
+    z-index: 2000;
+    transform: translateX(100%);
+    transition: transform var(--transition-base);
+    box-shadow: -10px 0 25px -10px rgba(0,0,0,0.1);
+  }
+  .customize-sidebar.is-visible { transform: translateX(0); }
+
+  .customize-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--color-border);
+    flex-shrink: 0;
+  }
+  .customize-header h3 {
+    font-size: 20px;
+    font-weight: 600;
+  }
+
+  .customize-content {
+    padding: 24px;
+    overflow-y: auto;
+    flex-grow: 1;
+  }
+
+  .customize-section {
+    margin-bottom: 32px;
+  }
+  .customize-section:last-child {
+    margin-bottom: 0;
+  }
+  .customize-section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* Theme Cards Grid */
+  .theme-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .theme-card {
+    aspect-ratio: 1;
+    border-radius: var(--radius-md);
+    border: 2px solid var(--color-border);
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--theme-primary, #ddd) 0%, var(--theme-secondary, #eee) 100%);
+  }
+  .theme-card:hover {
+    border-color: var(--color-brand);
+    transform: scale(1.05);
+  }
+  .theme-card.active {
+    border-color: var(--color-brand);
+    border-width: 3px;
+  }
+  .theme-card.active::after {
+    content: '✓';
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    background: var(--color-brand);
+    color: white;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+  }
+
+  .theme-card-label {
+    position: absolute;
+    bottom: 6px;
+    left: 6px;
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(0, 0, 0, 0.6);
+    background: rgba(255, 255, 255, 0.9);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  /* Color Pickers */
+  .color-picker-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .color-picker-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .color-picker-item label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+  }
+  .color-picker-input {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
+    border: 2px solid var(--color-border);
+    cursor: pointer;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background: none;
+    padding: 4px;
+  }
+  .color-picker-input::-webkit-color-swatch {
+    border-radius: 6px;
+    border: none;
+  }
+  .color-picker-input::-moz-color-swatch {
+    border-radius: 6px;
+    border: none;
+  }
+
+  /* Background Section */
+  .background-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .background-card {
+    aspect-ratio: 16/10;
+    border-radius: var(--radius-md);
+    border: 2px solid var(--color-border);
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+    background: var(--color-bg);
+    background-size: cover;
+    background-position: center;
+  }
+  .background-card:hover {
+    border-color: var(--color-brand);
+    transform: scale(1.02);
+  }
+  .background-card.active {
+    border-color: var(--color-brand);
+    border-width: 3px;
+  }
+  .background-card.active::after {
+    content: '✓';
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: var(--color-brand);
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: bold;
+  }
+
+  .background-card.upload-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: var(--color-surface-secondary);
+  }
+  .background-card.upload-card .icon {
+    width: 32px;
+    height: 32px;
+    color: var(--color-text-secondary);
+  }
+  .background-card.upload-card span {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+  }
+
+  .reset-btn {
+    width: 100%;
+    height: 40px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text-primary);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin-top: 12px;
+  }
+  .reset-btn:hover {
+    background: var(--color-bg-hover);
+  }
+  /* ===== END: CUSTOMIZATION PANEL CSS ===== */
+
   /* ===== START: ANNOUNCEMENT BANNER CSS ===== */
   #announcement-banner {
       background-color: #e0f2fe; /* Light blue background */
@@ -600,6 +827,9 @@
             <span>Admin panel</span>
         </button>
         <div class="top-bar-right">
+            <button id="customize-trigger" class="top-bar-btn" aria-label="Customize appearance">
+                <i class="icon" data-icon="palette"></i>
+            </button>
             <div class="user-menu-container">
                 <button id="user-menu-trigger" class="top-bar-btn" aria-label="Open User Menu">
                     <img id="user-menu-pic" src="" alt="Profile" class="profile-pic">
@@ -637,6 +867,59 @@
     <div id="admin-menu-container" class="team-list-container">
     </div>
 </aside>
+
+<aside id="customize-sidebar" class="customize-sidebar">
+    <div class="customize-header">
+        <h3>Customize this page</h3>
+        <button id="close-customize-btn" class="close-sidebar-btn" aria-label="Close customization panel">
+            <i class="icon" data-icon="x"></i>
+        </button>
+    </div>
+    <div class="customize-content">
+        <!-- Color & Theme Section -->
+        <div class="customize-section">
+            <h4 class="customize-section-title">Color & Theme</h4>
+            <div class="theme-cards-grid" id="theme-cards-grid">
+                <!-- Theme cards will be populated here -->
+            </div>
+        </div>
+
+        <!-- Custom Colors Section -->
+        <div class="customize-section">
+            <h4 class="customize-section-title">Custom Colors</h4>
+            <div class="color-picker-group">
+                <div class="color-picker-item">
+                    <label for="color-brand">Accent Color</label>
+                    <input type="color" id="color-brand" class="color-picker-input" value="#0071dc">
+                </div>
+                <div class="color-picker-item">
+                    <label for="color-surface">Surface Color</label>
+                    <input type="color" id="color-surface" class="color-picker-input" value="#FFFFFF">
+                </div>
+                <div class="color-picker-item">
+                    <label for="color-text-primary">Text Color</label>
+                    <input type="color" id="color-text-primary" class="color-picker-input" value="#18181B">
+                </div>
+            </div>
+            <button id="reset-colors-btn" class="reset-btn">Reset to Default</button>
+        </div>
+
+        <!-- Background Section -->
+        <div class="customize-section">
+            <h4 class="customize-section-title">Background</h4>
+            <div class="background-grid" id="background-grid">
+                <div class="background-card upload-card" id="upload-background-card">
+                    <i class="icon" data-icon="image"></i>
+                    <span>Upload</span>
+                </div>
+                <!-- Background cards will be populated here -->
+            </div>
+            <button id="reset-background-btn" class="reset-btn">Remove Background</button>
+        </div>
+    </div>
+</aside>
+
+<input type="file" id="background-upload-input" accept="image/*" style="display: none;">
 <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
 <div id="admin-panel-backdrop" class="sidebar-backdrop"></div>
 <div class="popup-menu" id="user-actions-popup">
@@ -846,6 +1129,9 @@ const App = {
         this.loadAnnouncements();
         API.getSpreadsheetUrl().then(url => UI.setGSheetLink(url));
         this.loadTeamDataInBackground();
+
+        // Initialize customization panel
+        Customize.init();
     },
     cacheDOMElements() {
         this.dom = {
@@ -919,6 +1205,20 @@ const App = {
                 text: document.getElementById('announcement-text'),
                 gmeetBtn: document.getElementById('announcement-gmeet-btn'),
                 closeBtn: document.getElementById('announcement-close-btn')
+            },
+            customize: {
+                trigger: document.getElementById('customize-trigger'),
+                sidebar: document.getElementById('customize-sidebar'),
+                closeBtn: document.getElementById('close-customize-btn'),
+                themeCardsGrid: document.getElementById('theme-cards-grid'),
+                colorBrand: document.getElementById('color-brand'),
+                colorSurface: document.getElementById('color-surface'),
+                colorTextPrimary: document.getElementById('color-text-primary'),
+                resetColorsBtn: document.getElementById('reset-colors-btn'),
+                backgroundGrid: document.getElementById('background-grid'),
+                uploadBackgroundCard: document.getElementById('upload-background-card'),
+                backgroundUploadInput: document.getElementById('background-upload-input'),
+                resetBackgroundBtn: document.getElementById('reset-background-btn')
             }
         };
     },
@@ -932,6 +1232,25 @@ const App = {
             const eventId = e.currentTarget.dataset.eventId;
             UI.hideAnnouncementBanner(eventId);
         });
+
+        // Customize panel event listeners
+        this.dom.customize.trigger.addEventListener('click', () => Customize.toggleSidebar(true));
+        this.dom.customize.closeBtn.addEventListener('click', () => Customize.toggleSidebar(false));
+        document.getElementById('sidebar-backdrop').addEventListener('click', () => {
+            Customize.toggleSidebar(false);
+            UI.toggleAdminMenuSidebar(false);
+        });
+
+        // Color pickers
+        this.dom.customize.colorBrand.addEventListener('input', (e) => Customize.applyCustomColor('--color-brand', e.target.value));
+        this.dom.customize.colorSurface.addEventListener('input', (e) => Customize.applyCustomColor('--color-surface', e.target.value));
+        this.dom.customize.colorTextPrimary.addEventListener('input', (e) => Customize.applyCustomColor('--color-text-primary', e.target.value));
+        this.dom.customize.resetColorsBtn.addEventListener('click', () => Customize.resetColors());
+
+        // Background upload and reset
+        this.dom.customize.uploadBackgroundCard.addEventListener('click', () => this.dom.customize.backgroundUploadInput.click());
+        this.dom.customize.backgroundUploadInput.addEventListener('change', (e) => Customize.handleBackgroundUpload(e));
+        this.dom.customize.resetBackgroundBtn.addEventListener('click', () => Customize.removeBackground());
 
         if (this.state.isAdmin) {
             this.dom.admin.panelBtn.addEventListener('click', (e) => {
@@ -1745,6 +2064,242 @@ Object.assign(UI, {
     }
 });
 
+const Customize = {
+    themes: [
+        { id: 'blue', name: 'Blue', primary: '#0071dc', secondary: '#4da3ff' },
+        { id: 'purple', name: 'Purple', primary: '#7c3aed', secondary: '#a78bfa' },
+        { id: 'pink', name: 'Pink', primary: '#ec4899', secondary: '#f472b6' },
+        { id: 'green', name: 'Green', primary: '#10b981', secondary: '#34d399' },
+        { id: 'orange', name: 'Orange', primary: '#f97316', secondary: '#fb923c' },
+        { id: 'teal', name: 'Teal', primary: '#14b8a6', secondary: '#2dd4bf' }
+    ],
+
+    init() {
+        this.renderThemeCards();
+        this.loadBackgrounds();
+        this.loadSavedCustomization();
+    },
+
+    renderThemeCards() {
+        const grid = App.dom.customize.themeCardsGrid;
+        grid.innerHTML = this.themes.map(theme => `
+            <div class="theme-card" data-theme-id="${theme.id}"
+                 style="--theme-primary: ${theme.primary}; --theme-secondary: ${theme.secondary}">
+                <span class="theme-card-label">${theme.name}</span>
+            </div>
+        `).join('');
+
+        grid.querySelectorAll('.theme-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const themeId = card.dataset.themeId;
+                this.applyTheme(themeId);
+            });
+        });
+    },
+
+    applyTheme(themeId) {
+        const theme = this.themes.find(t => t.id === themeId);
+        if (!theme) return;
+
+        document.documentElement.style.setProperty('--color-brand', theme.primary);
+        App.dom.customize.colorBrand.value = theme.primary;
+
+        // Update active state
+        App.dom.customize.themeCardsGrid.querySelectorAll('.theme-card').forEach(card => {
+            card.classList.toggle('active', card.dataset.themeId === themeId);
+        });
+
+        // Save preference
+        this.saveCustomization({ selectedTheme: themeId, customColors: { brand: theme.primary } });
+        UI.showToast(`${theme.name} theme applied!`, 'success');
+    },
+
+    applyCustomColor(cssVar, value) {
+        document.documentElement.style.setProperty(cssVar, value);
+
+        // Get current customization and update colors
+        const saved = this.getSavedCustomization();
+        const customColors = saved.customColors || {};
+        const colorKey = cssVar.replace('--color-', '');
+        customColors[colorKey] = value;
+
+        this.saveCustomization({ ...saved, customColors, selectedTheme: null });
+    },
+
+    resetColors() {
+        // Reset to default theme colors
+        const defaultColors = {
+            '--color-brand': '#0071dc',
+            '--color-surface': '#FFFFFF',
+            '--color-text-primary': '#18181B'
+        };
+
+        Object.entries(defaultColors).forEach(([cssVar, value]) => {
+            document.documentElement.style.setProperty(cssVar, value);
+            const input = App.dom.customize[`color${cssVar.replace('--color-', '').charAt(0).toUpperCase() + cssVar.replace('--color-', '').slice(1).replace(/-([a-z])/g, (m, c) => c.toUpperCase())}`];
+            if (input) input.value = value;
+        });
+
+        // Remove active theme
+        App.dom.customize.themeCardsGrid.querySelectorAll('.theme-card').forEach(card => {
+            card.classList.remove('active');
+        });
+
+        this.saveCustomization({ selectedTheme: null, customColors: null });
+        UI.showToast('Colors reset to default!', 'success');
+    },
+
+    async loadBackgrounds() {
+        const grid = App.dom.customize.backgroundGrid;
+        const uploadCard = grid.querySelector('.upload-card');
+
+        try {
+            const result = await API.getBackgroundImages();
+            if (result.success && result.images && result.images.length > 0) {
+                const backgroundCards = await Promise.all(result.images.map(async (img) => {
+                    const dataUrl = await API.getProfilePicDataUrl(img.id);
+                    if (dataUrl.success) {
+                        return `<div class="background-card" data-bg-id="${img.id}"
+                                     style="background-image: url('${dataUrl.dataUrl}');">
+                                </div>`;
+                    }
+                    return '';
+                }));
+
+                grid.innerHTML = uploadCard.outerHTML + backgroundCards.join('');
+
+                // Re-attach upload card listener
+                grid.querySelector('.upload-card').addEventListener('click', () => App.dom.customize.backgroundUploadInput.click());
+
+                // Add click listeners to background cards
+                grid.querySelectorAll('.background-card:not(.upload-card)').forEach(card => {
+                    card.addEventListener('click', () => {
+                        this.applyBackground(card.dataset.bgId, card.style.backgroundImage);
+                    });
+                });
+            }
+        } catch (error) {
+            console.error('Error loading backgrounds:', error);
+        }
+    },
+
+    applyBackground(bgId, bgImage) {
+        document.body.style.backgroundImage = bgImage;
+        document.body.classList.add('has-custom-bg');
+
+        // Update active state
+        App.dom.customize.backgroundGrid.querySelectorAll('.background-card').forEach(card => {
+            card.classList.toggle('active', card.dataset.bgId === bgId);
+        });
+
+        this.saveCustomization({ ...this.getSavedCustomization(), selectedBackground: bgId });
+        UI.showToast('Background applied!', 'success');
+    },
+
+    removeBackground() {
+        document.body.style.backgroundImage = '';
+        document.body.classList.remove('has-custom-bg');
+
+        // Remove active state
+        App.dom.customize.backgroundGrid.querySelectorAll('.background-card').forEach(card => {
+            card.classList.remove('active');
+        });
+
+        this.saveCustomization({ ...this.getSavedCustomization(), selectedBackground: null });
+        UI.showToast('Background removed!', 'success');
+    },
+
+    async handleBackgroundUpload(event) {
+        const file = event.target.files[0];
+        if (!file || !file.type.startsWith('image/')) {
+            UI.showToast('Please select a valid image file', 'error');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            UI.setLoading(true);
+            const [header, base64Data] = e.target.result.split(',');
+            const mimeType = header.match(/:(.*?);/)[1];
+
+            try {
+                const result = await API.saveBackgroundImage(base64Data, mimeType);
+                if (result.success) {
+                    UI.showToast('Background uploaded successfully!', 'success');
+                    await this.loadBackgrounds();
+                    this.applyBackground(result.fileId, `url('${e.target.result}')`);
+                } else {
+                    throw new Error(result.error || 'Failed to upload background');
+                }
+            } catch (error) {
+                UI.showToast(`Error: ${error.message}`, 'error');
+            } finally {
+                UI.setLoading(false);
+            }
+        };
+        reader.readAsDataURL(file);
+        event.target.value = null;
+    },
+
+    toggleSidebar(show) {
+        App.dom.customize.sidebar.classList.toggle('is-visible', show);
+        document.getElementById('sidebar-backdrop').classList.toggle('is-visible', show);
+
+        if (show) {
+            // Close other sidebars
+            UI.toggleAdminMenuSidebar(false);
+        }
+    },
+
+    saveCustomization(data) {
+        localStorage.setItem('timetracker_customization', JSON.stringify(data));
+    },
+
+    getSavedCustomization() {
+        const saved = localStorage.getItem('timetracker_customization');
+        return saved ? JSON.parse(saved) : {};
+    },
+
+    loadSavedCustomization() {
+        const saved = this.getSavedCustomization();
+
+        // Apply saved theme
+        if (saved.selectedTheme) {
+            const theme = this.themes.find(t => t.id === saved.selectedTheme);
+            if (theme) {
+                document.documentElement.style.setProperty('--color-brand', theme.primary);
+                App.dom.customize.themeCardsGrid.querySelectorAll('.theme-card').forEach(card => {
+                    card.classList.toggle('active', card.dataset.themeId === saved.selectedTheme);
+                });
+            }
+        }
+
+        // Apply saved custom colors
+        if (saved.customColors) {
+            Object.entries(saved.customColors).forEach(([key, value]) => {
+                const cssVar = `--color-${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
+                document.documentElement.style.setProperty(cssVar, value);
+
+                const inputKey = `color${key.charAt(0).toUpperCase() + key.slice(1)}`;
+                if (App.dom.customize[inputKey]) {
+                    App.dom.customize[inputKey].value = value;
+                }
+            });
+        }
+
+        // Apply saved background
+        if (saved.selectedBackground) {
+            // Background will be loaded and applied after loadBackgrounds() completes
+            setTimeout(() => {
+                const bgCard = App.dom.customize.backgroundGrid.querySelector(`[data-bg-id="${saved.selectedBackground}"]`);
+                if (bgCard) {
+                    this.applyBackground(saved.selectedBackground, bgCard.style.backgroundImage);
+                }
+            }, 1000);
+        }
+    }
+};
+
 const API = {
     _run: (fn, ...a) => new Promise((res, rej) => google.script.run.withSuccessHandler(res).withFailureHandler(rej)[fn](...a)),
     getInitialLoadData: (n) => API._run('getInitialLoadData', n),
@@ -1763,7 +2318,9 @@ const API = {
     getAutomationLogs: () => API._run('getAutomationLogs'),
     clearAutomationLogs: () => API._run('clearAutomationLogs'),
     getRecentAutomationEvents: () => API._run('getRecentAutomationEvents'),
-    getTodaysCalendarEvents: () => API._run('getTodaysCalendarEvents')
+    getTodaysCalendarEvents: () => API._run('getTodaysCalendarEvents'),
+    saveBackgroundImage: (data, type) => API._run('saveBackgroundImage', data, type),
+    getBackgroundImages: () => API._run('getBackgroundImages')
 };
 
 document.addEventListener('DOMContentLoaded', () => App.init());
