@@ -287,7 +287,7 @@ function runHourlyChecks() {
           if (!PropertiesService.getScriptProperties().getProperty(userKey)) {
             const message = `🎉 <b>Daily Goal Met!</b>\nYou have now worked for 8 hours. Don't forget to clock out when you're done!`;
             sendDynamicTelegramNotification(prefs.telegramChatId, user.name, message);
-            PropertiesService.getScriptProperties().setProperty(userKey, 'sent', 21600);
+            PropertiesService.getScriptProperties().setProperty(userKey, 'sent');
             Logger.log(`SUCCESS: Sent 8-hour reminder to ${user.name}.`);
           }
         }
@@ -299,7 +299,7 @@ function runHourlyChecks() {
           if (!PropertiesService.getScriptProperties().getProperty(userKey)) {
             const message = `<b>Clock-Out Reminder</b>\nIt looks like you've been clocked in for 10 hours or more. Did you forget to clock out?`;
             sendDynamicTelegramNotification(prefs.telegramChatId, user.name, message);
-            PropertiesService.getScriptProperties().setProperty(userKey, 'sent', 21600);
+            PropertiesService.getScriptProperties().setProperty(userKey, 'sent');
             Logger.log(`SUCCESS: Sent 10-hour safety net reminder to ${user.name}.`);
           }
         }
@@ -982,7 +982,7 @@ function handleAutoClockOut_(profileData, prefs, todayStr) {
       Logger.log(`AUTOMATION: Firing random auto-clock-out for ${profileData.name} at ${workedHours.toFixed(2)} hours.`);
       processTimeEntry(profileData.name, 'clockOut', actionTimestamp);
       logAutomationEvent_(profileData.name, 'Auto Clock Out', `Reached ${durationHours.toFixed(1)} working hours.`);
-      PropertiesService.getScriptProperties().setProperty(hasRunKey, 'true', 21600);
+      PropertiesService.getScriptProperties().setProperty(hasRunKey, 'true');
     }
   }
 }
@@ -1090,7 +1090,7 @@ function handleTimedActions_(profileData, prefs, now) {
         const randomSeconds = Math.floor(Math.random() * 60);
         const randomTime = new Date(triggerTime.getTime() + randomMinutes * 60000 + randomSeconds * 1000);
         randomExecutionTime = randomTime.getTime().toString();
-        scriptProps.setProperty(randomTimeKey, randomExecutionTime, 21600); // Expires in 6 hours
+        scriptProps.setProperty(randomTimeKey, randomExecutionTime);
         Logger.log(`AUTOMATION: Generated random execution time for ${profileData.name} ${trigger.action}: ${new Date(parseInt(randomExecutionTime)).toLocaleTimeString()} (${randomMinutes}m ${randomSeconds}s into window)`);
       } else {
         Logger.log(`AUTOMATION: Using existing random time for ${profileData.name} ${trigger.action}: ${new Date(parseInt(randomExecutionTime)).toLocaleTimeString()}`);
@@ -1144,7 +1144,7 @@ function handleTimedActions_(profileData, prefs, now) {
           const prettyAction = action.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
           logAutomationEvent_(name, `Timed Action: ${prettyAction}`, `Trigger set for ${trigger.time}, executed at ${actionTimestamp.toLocaleTimeString()} (${minutesIntoWindow}m ${actionTimestamp.getSeconds()}s into window).`);
 
-          scriptProps.setProperty(hasRunKey, 'true', 21600);
+          scriptProps.setProperty(hasRunKey, 'true');
           scriptProps.deleteProperty(randomTimeKey); // Clean up the random time
       } else {
           Logger.log(`AUTOMATION: Waiting to execute timed action "${action}" for ${name}. Required status not met. Scheduled random time: ${new Date(targetExecutionTime).toLocaleTimeString()}, Current status: ${status}.`);
