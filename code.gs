@@ -1080,6 +1080,24 @@ function handleTimedActions_(profileData, prefs, now) {
         return;
       }
 
+      // Check if the action was already performed manually today
+      const actionColumn = COLUMN_MAP[trigger.action];
+      if (!actionColumn) {
+        Logger.log(`AUTOMATION: Invalid action type ${trigger.action} for ${profileData.name}`);
+        return;
+      }
+
+      const timeEntries = profileData.timeEntries;
+      const actionAlreadyPerformed = timeEntries && timeEntries[trigger.action] &&
+                                     timeEntries[trigger.action] !== '--' &&
+                                     timeEntries[trigger.action].trim() !== '';
+
+      if (actionAlreadyPerformed) {
+        Logger.log(`AUTOMATION: Action ${trigger.action} already performed manually today for ${profileData.name} at ${timeEntries[trigger.action]}. Skipping automation.`);
+        scriptProps.setProperty(hasRunKey, 'true'); // Mark as complete to prevent future checks
+        return;
+      }
+
       // Get or generate the random execution time for this trigger
       const randomTimeKey = `timedActionRandomTime_${keyPart}_${todayStr}`;
       let randomExecutionTime = scriptProps.getProperty(randomTimeKey);
