@@ -777,19 +777,45 @@ function recalculateHoursForDate(userName, dateString) {
 function getBackgroundImages() {
   try {
     const folders = DriveApp.getFoldersByName(ASSET_FOLDER_NAME);
-    if (!folders.hasNext()) { throw new Error(`Asset folder named "${ASSET_FOLDER_NAME}" not found.`); }
+    if (!folders.hasNext()) {
+      return { success: true, images: [] };
+    }
     const folder = folders.next();
     const images = [];
-    const bgNames = ['bg1', 'bg2', 'bg3', 'bg4', 'bg5'];
-    bgNames.forEach(name => {
-      const files = folder.getFilesByName(name);
-      if (files.hasNext()) {
-        const file = files.next();
-        images.push({ name: name, id: file.getId() });
+
+    // Get custom backgrounds (bg_custom_*)
+    const files = folder.getFilesByName('bg_custom');
+    const customBgFiles = [];
+
+    // Search for files that start with bg_custom or are named bg1-bg5
+    const allFiles = folder.getFiles();
+    while (allFiles.hasNext()) {
+      const file = allFiles.next();
+      const fileName = file.getName();
+      if (fileName.startsWith('bg_custom') || /^bg[1-5]$/.test(fileName)) {
+        images.push({ name: fileName, id: file.getId() });
       }
-    });
+    }
+
     return { success: true, images: images };
   } catch(e) {
+    Logger.log(`Error in getBackgroundImages: ${e.toString()}`);
+    return { success: false, error: e.message };
+  }
+}
+
+function saveBackgroundImage(base64Data, mimeType) {
+  try {
+    let folders = DriveApp.getFoldersByName(ASSET_FOLDER_NAME);
+    let folder = folders.hasNext() ? folders.next() : DriveApp.createFolder(ASSET_FOLDER_NAME);
+
+    const timestamp = new Date().getTime();
+    const blob = Utilities.newBlob(Utilities.base64Decode(base64Data), mimeType, `bg_custom_${timestamp}.png`);
+
+    const newFile = folder.createFile(blob);
+    return { success: true, fileId: newFile.getId() };
+  } catch (e) {
+    Logger.log(`Error in saveBackgroundImage: ${e.toString()}`);
     return { success: false, error: e.message };
   }
 }
