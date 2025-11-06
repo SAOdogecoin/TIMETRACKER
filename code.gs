@@ -819,6 +819,18 @@ function saveBackgroundImage(base64Data, mimeType) {
     return { success: false, error: e.message };
   }
 }
+
+function deleteBackgroundImage(fileId) {
+  try {
+    const file = DriveApp.getFileById(fileId);
+    file.setTrashed(true);
+    return { success: true };
+  } catch (e) {
+    Logger.log(`Error in deleteBackgroundImage: ${e.toString()}`);
+    return { success: false, error: e.message };
+  }
+}
+
 function saveBackgroundPreference(selection) {
     if (!isAdmin_()) { return { success: false, error: 'Permission denied.' }; }
     try {
