@@ -1023,14 +1023,17 @@ const App = {
     async handleTimeEntry(action) {
         const originalState = JSON.parse(JSON.stringify(this.state.currentUser));
         UI.performOptimisticUpdate(action);
-        try { 
+        try {
             const result = await API.processTimeEntry(originalState.name, action);
             if (!result.success && result.error) { throw new Error(result.error); }
             const data = await API.getInitialLoadData(originalState.name);
+            if (data.dynamicGreeting) {
+                this.state.dynamicGreeting = data.dynamicGreeting;
+            }
             if (data.initialUserData) this.setCurrentUser(data.initialUserData);
-        } catch (error) { 
+        } catch (error) {
             UI.showToast(error.message, 'error');
-            this.setCurrentUser(originalState); 
+            this.setCurrentUser(originalState);
         }
     },
     async checkForRecentEvents() {
@@ -1065,19 +1068,25 @@ const App = {
 
 const UI = {
     renderDashboard(user) {
-        const firstName = user.name.split(' ')[0];
-        const hour = new Date().getHours();
-        let greetingText;
-        if (hour < 12) {
-          greetingText = "Good morning";
-        } else if (hour === 12) {
-          greetingText = "Good noon"; 
-        } else if (hour < 18) {
-          greetingText = "Good afternoon";
+        // Use dynamic greeting from backend if available
+        if (App.state.dynamicGreeting) {
+            App.dom.dashboard.greeting.textContent = `${App.state.dynamicGreeting.greeting}, ${App.state.dynamicGreeting.name}`;
         } else {
-          greetingText = "Good evening";
+            // Fallback to simple time-based greeting
+            const firstName = user.name.split(' ')[0];
+            const hour = new Date().getHours();
+            let greetingText;
+            if (hour < 12) {
+                greetingText = "Good morning";
+            } else if (hour === 12) {
+                greetingText = "Good noon";
+            } else if (hour < 18) {
+                greetingText = "Good afternoon";
+            } else {
+                greetingText = "Good evening";
+            }
+            App.dom.dashboard.greeting.textContent = `${greetingText}, ${firstName}`;
         }
-        App.dom.dashboard.greeting.textContent = `${greetingText}, ${firstName}`;
 
         App.dom.dashboard.date.textContent = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
         this.updateLiveCounter(user.totalSecondsToday);
@@ -1116,9 +1125,12 @@ Object.assign(App, {
                 this.state.users = data.nameList;
                 UI.renderUserSelectionPopup(this.state.users, '');
             }
-            if (data.initialUserData) { this.setCurrentUser(data.initialUserData); } 
+            if (data.dynamicGreeting) {
+                this.state.dynamicGreeting = data.dynamicGreeting;
+            }
+            if (data.initialUserData) { this.setCurrentUser(data.initialUserData); }
             else if (data.nameList && data.nameList.length > 0) { this.loadInitialData(data.nameList[0].name); }
-        } catch (error) { UI.showToast('Failed to load initial data.', 'error'); } 
+        } catch (error) { UI.showToast('Failed to load initial data.', 'error'); }
         finally { UI.setLoading(false); }
     },
     async loadTeamDataInBackground() {
