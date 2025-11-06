@@ -968,52 +968,66 @@ function handleTimedActions_(profileData, prefs, now) {
       if (!trigger.enabled || !trigger.time) return;
 
       const [triggerHour, triggerMinute] = trigger.time.split(':').map(Number);
-      
-      if (now.getHours() !== triggerHour) return;
-      
+
+      // Create the trigger time for today
+      const triggerTime = new Date(now);
+      triggerTime.setHours(triggerHour, triggerMinute, 0, 0);
+
+      // Create the window end time (trigger time + 60 minutes)
+      const windowEnd = new Date(triggerTime.getTime() + 60 * 60 * 1000);
+
+      // Check if we're within the execution window
+      if (now < triggerTime || now >= windowEnd) return;
+
       const keyPart = sanitizeKey_(profileData.name) + '_' + trigger.action + '_' + trigger.time.replace(':', '');
       const hasRunKey = `timedActionRan_${keyPart}_${todayStr}`;
       if (PropertiesService.getScriptProperties().getProperty(hasRunKey)) return;
 
-      if (now.getMinutes() >= triggerMinute) {
-        
-        const actionTimestamp = new Date();
-        actionTimestamp.setHours(triggerHour);
-        actionTimestamp.setMinutes(triggerMinute);
-        actionTimestamp.setSeconds(Math.floor(Math.random() * 60));
-        
-        const { status, name } = profileData;
-        const action = trigger.action;
-        let canExecute = false;
+      // Calculate minutes into the window
+      const minutesIntoWindow = Math.floor((now.getTime() - triggerTime.getTime()) / 60000);
+      const minutesRemaining = Math.max(1, 60 - minutesIntoWindow);
 
-        switch (action) {
-            case 'clockIn':
-                canExecute = (status === 'Offline');
-                break;
-            case 'breakOut':
-            case 'lunchOut':
-            case 'clockOut':
-                canExecute = (status === 'Working');
-                break;
-            case 'breakIn':
-                canExecute = (status === 'OnBreak');
-                break;
-            case 'lunchIn':
-                canExecute = (status === 'OnLunch');
-                break;
-        }
+      // Probabilistic execution: probability increases as time passes
+      // At 0 minutes: 1/60 chance (~1.67%)
+      // At 30 minutes: 1/30 chance (~3.33%)
+      // At 59 minutes: 1/1 chance (100%)
+      if (Math.floor(Math.random() * minutesRemaining) !== 0) return;
 
-        if (canExecute) {
-            Logger.log(`AUTOMATION: Firing timed action "${action}" for ${name} at scheduled time ${trigger.time}. Current status: ${status}.`);
-            processTimeEntry(name, action, actionTimestamp);
-            
-            const prettyAction = action.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-            logAutomationEvent_(name, `Timed Action: ${prettyAction}`, `Trigger set for ${trigger.time}, executed at ${actionTimestamp.toLocaleTimeString()}.`);
+      const { status, name } = profileData;
+      const action = trigger.action;
+      let canExecute = false;
 
-            PropertiesService.getScriptProperties().setProperty(hasRunKey, 'true', 21600); 
-        } else {
-            Logger.log(`AUTOMATION: Skipped timed action "${action}" for ${name}. Required status not met at scheduled time ${trigger.time}. Current status: ${status}.`);
-        }
+      switch (action) {
+          case 'clockIn':
+              canExecute = (status === 'Offline');
+              break;
+          case 'breakOut':
+          case 'lunchOut':
+          case 'clockOut':
+              canExecute = (status === 'Working');
+              break;
+          case 'breakIn':
+              canExecute = (status === 'OnBreak');
+              break;
+          case 'lunchIn':
+              canExecute = (status === 'OnLunch');
+              break;
+      }
+
+      if (canExecute) {
+          // Generate a random timestamp within the window
+          const randomOffset = Math.floor(Math.random() * (now.getTime() - triggerTime.getTime()));
+          const actionTimestamp = new Date(triggerTime.getTime() + randomOffset);
+
+          Logger.log(`AUTOMATION: Firing random timed action "${action}" for ${name}. Scheduled: ${trigger.time}, Executed: ${actionTimestamp.toLocaleTimeString()}, Minutes into window: ${minutesIntoWindow}.`);
+          processTimeEntry(name, action, actionTimestamp);
+
+          const prettyAction = action.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+          logAutomationEvent_(name, `Timed Action: ${prettyAction}`, `Trigger set for ${trigger.time}, randomly executed at ${actionTimestamp.toLocaleTimeString()} (${minutesIntoWindow} min into window).`);
+
+          PropertiesService.getScriptProperties().setProperty(hasRunKey, 'true', 21600);
+      } else {
+          Logger.log(`AUTOMATION: Skipped timed action "${action}" for ${name}. Required status not met. Scheduled: ${trigger.time}, Current status: ${status}, Minutes into window: ${minutesIntoWindow}.`);
       }
     });
   } catch(e) {
