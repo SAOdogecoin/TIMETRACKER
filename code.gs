@@ -532,7 +532,27 @@ function getTodaysCalendarEvents() {
 
 function sanitizeKey_(inputString) { return inputString ? inputString.trim().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '') : null; }
 function getUserPreferences_(name) { const defaultPrefs = {}; const userKeyPart = sanitizeKey_(name); if (!userKeyPart) return defaultPrefs; const scriptProps = PropertiesService.getScriptProperties(); const propKey = `user_prefs_${userKeyPart}`; const jsonString = scriptProps.getProperty(propKey); if (jsonString) { try { return JSON.parse(jsonString); } catch (e) { return defaultPrefs; } } return defaultPrefs; }
-function saveUserPreference(userName, key, value) { if (!userName || !key) return { success: false }; const userKeyPart = sanitizeKey_(userName); if (!userKeyPart) return { success: false }; const scriptProps = PropertiesService.getScriptProperties(); const propKey = `user_prefs_${userKeyPart}`; try { const prefs = getUserPreferences_(userName); prefs[key] = value; scriptProps.setProperty(propKey, JSON.stringify(prefs)); return { success: true }; } catch (e) { return { success: false, error: e.message }; } }
+function saveUserPreference(userName, key, value) {
+  if (!userName || !key) return { success: false };
+  const userKeyPart = sanitizeKey_(userName);
+  if (!userKeyPart) return { success: false };
+  const scriptProps = PropertiesService.getScriptProperties();
+  const propKey = `user_prefs_${userKeyPart}`;
+  try {
+    const prefs = getUserPreferences_(userName);
+    prefs[key] = value;
+    scriptProps.setProperty(propKey, JSON.stringify(prefs));
+
+    const automationKeys = ['enableAutoClockOut', 'enableAutoEndBreak', 'enableAutoEndLunch', 'timedActionTriggers'];
+    if (automationKeys.includes(key)) {
+      ensureAutomationTrigger_();
+    }
+
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
 function getSpreadsheetUrl() { try { return SpreadsheetApp.getActiveSpreadsheet().getUrl(); } catch (e) { return "#"; } }
 function getProfilePicDataUrlForFileId(fileId) { if (!fileId) return { success: false }; try { const blob = DriveApp.getFileById(fileId).getBlob(); return { success: true, dataUrl: `data:${blob.getContentType()};base64,${Utilities.base64Encode(blob.getBytes())}` }; } catch (e) { return { success: false }; } }
 function getOrCreateTargetSheet_() { const ss = SpreadsheetApp.getActiveSpreadsheet(); const date = new Date(); date.setHours(0, 0, 0, 0); const dayNum = date.getDay() || 7; date.setDate(date.getDate() + 4 - dayNum); const yearStart = new Date(date.getFullYear(), 0, 1); const weekNo = Math.ceil((((date - yearStart) / 86400000) + 1) / 7); const targetSheetName = `Week${weekNo}`; let sheet = ss.getSheetByName(targetSheetName); if (!sheet) { const templateSheet = ss.getSheetByName(TEMPLATE_SHEET_NAME); if (!templateSheet) return null; sheet = ss.insertSheet(targetSheetName, ss.getNumSheets(), { template: templateSheet }); } return sheet; }
@@ -773,6 +793,21 @@ function getRecentAutomationEvents() {
 }
 
 
+function ensureAutomationTrigger_() {
+  const triggers = ScriptApp.getProjectTriggers();
+  const existingTrigger = triggers.find(t => t.getHandlerFunction() === 'runAutomations');
+
+  if (!existingTrigger) {
+    ScriptApp.newTrigger('runAutomations')
+      .timeBased()
+      .everyMinutes(1)
+      .create();
+    Logger.log('Automation trigger created to run every minute.');
+    return true;
+  }
+  return false;
+}
+
 function createAutomationTrigger() {
   const triggers = ScriptApp.getProjectTriggers();
   for (const trigger of triggers) {
@@ -780,13 +815,45 @@ function createAutomationTrigger() {
       ScriptApp.deleteTrigger(trigger);
     }
   }
-  
+
   ScriptApp.newTrigger('runAutomations')
     .timeBased()
     .everyMinutes(1)
     .create();
-    
+
   Logger.log('Automation trigger created to run every minute.');
+}
+
+function checkAutomationStatus() {
+  if (!isSuperAdmin_()) {
+    return { success: false, error: 'Permission denied.' };
+  }
+
+  try {
+    const triggers = ScriptApp.getProjectTriggers();
+    const automationTrigger = triggers.find(t => t.getHandlerFunction() === 'runAutomations');
+
+    if (automationTrigger) {
+      return {
+        success: true,
+        status: 'active',
+        message: 'Automation trigger is active and running every minute.',
+        triggerInfo: {
+          handlerFunction: automationTrigger.getHandlerFunction(),
+          triggerSource: automationTrigger.getTriggerSource().toString(),
+          eventType: automationTrigger.getEventType().toString()
+        }
+      };
+    } else {
+      return {
+        success: true,
+        status: 'inactive',
+        message: 'Automation trigger is NOT active. Creating it now...'
+      };
+    }
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
 }
 
 function runAutomations() {
