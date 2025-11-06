@@ -963,6 +963,7 @@ function handleTimedActions_(profileData, prefs, now) {
     if (!Array.isArray(triggers)) return;
 
     const todayStr = now.toISOString().slice(0, 10);
+    const scriptProps = PropertiesService.getScriptProperties();
 
     triggers.forEach(trigger => {
       if (!trigger.enabled || !trigger.time) return;
@@ -981,17 +982,26 @@ function handleTimedActions_(profileData, prefs, now) {
 
       const keyPart = sanitizeKey_(profileData.name) + '_' + trigger.action + '_' + trigger.time.replace(':', '');
       const hasRunKey = `timedActionRan_${keyPart}_${todayStr}`;
-      if (PropertiesService.getScriptProperties().getProperty(hasRunKey)) return;
+      if (scriptProps.getProperty(hasRunKey)) return;
 
-      // Calculate minutes into the window
-      const minutesIntoWindow = Math.floor((now.getTime() - triggerTime.getTime()) / 60000);
-      const minutesRemaining = Math.max(1, 60 - minutesIntoWindow);
+      // Get or generate the random execution time for this trigger
+      const randomTimeKey = `timedActionRandomTime_${keyPart}_${todayStr}`;
+      let randomExecutionTime = scriptProps.getProperty(randomTimeKey);
 
-      // Probabilistic execution: probability increases as time passes
-      // At 0 minutes: 1/60 chance (~1.67%)
-      // At 30 minutes: 1/30 chance (~3.33%)
-      // At 59 minutes: 1/1 chance (100%)
-      if (Math.floor(Math.random() * minutesRemaining) !== 0) return;
+      if (!randomExecutionTime) {
+        // First time entering window - pick a random minute (0-59) and second (0-59)
+        const randomMinutes = Math.floor(Math.random() * 60);
+        const randomSeconds = Math.floor(Math.random() * 60);
+        const randomTime = new Date(triggerTime.getTime() + randomMinutes * 60000 + randomSeconds * 1000);
+        randomExecutionTime = randomTime.getTime().toString();
+        scriptProps.setProperty(randomTimeKey, randomExecutionTime, 21600); // Expires in 6 hours
+        Logger.log(`AUTOMATION: Generated random execution time for ${profileData.name} ${trigger.action}: ${new Date(parseInt(randomExecutionTime)).toLocaleTimeString()}`);
+      }
+
+      const targetExecutionTime = parseInt(randomExecutionTime);
+
+      // Check if it's time to execute (we've passed the random execution time)
+      if (now.getTime() < targetExecutionTime) return;
 
       const { status, name } = profileData;
       const action = trigger.action;
@@ -1015,19 +1025,19 @@ function handleTimedActions_(profileData, prefs, now) {
       }
 
       if (canExecute) {
-          // Generate a random timestamp within the window
-          const randomOffset = Math.floor(Math.random() * (now.getTime() - triggerTime.getTime()));
-          const actionTimestamp = new Date(triggerTime.getTime() + randomOffset);
+          const actionTimestamp = new Date(targetExecutionTime);
+          const minutesIntoWindow = Math.floor((actionTimestamp.getTime() - triggerTime.getTime()) / 60000);
 
-          Logger.log(`AUTOMATION: Firing random timed action "${action}" for ${name}. Scheduled: ${trigger.time}, Executed: ${actionTimestamp.toLocaleTimeString()}, Minutes into window: ${minutesIntoWindow}.`);
+          Logger.log(`AUTOMATION: Firing timed action "${action}" for ${name}. Scheduled: ${trigger.time}, Executing at pre-determined random time: ${actionTimestamp.toLocaleTimeString()} (${minutesIntoWindow} min into window).`);
           processTimeEntry(name, action, actionTimestamp);
 
           const prettyAction = action.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-          logAutomationEvent_(name, `Timed Action: ${prettyAction}`, `Trigger set for ${trigger.time}, randomly executed at ${actionTimestamp.toLocaleTimeString()} (${minutesIntoWindow} min into window).`);
+          logAutomationEvent_(name, `Timed Action: ${prettyAction}`, `Trigger set for ${trigger.time}, executed at ${actionTimestamp.toLocaleTimeString()} (${minutesIntoWindow}m ${actionTimestamp.getSeconds()}s into window).`);
 
-          PropertiesService.getScriptProperties().setProperty(hasRunKey, 'true', 21600);
+          scriptProps.setProperty(hasRunKey, 'true', 21600);
+          scriptProps.deleteProperty(randomTimeKey); // Clean up the random time
       } else {
-          Logger.log(`AUTOMATION: Skipped timed action "${action}" for ${name}. Required status not met. Scheduled: ${trigger.time}, Current status: ${status}, Minutes into window: ${minutesIntoWindow}.`);
+          Logger.log(`AUTOMATION: Waiting to execute timed action "${action}" for ${name}. Required status not met. Scheduled random time: ${new Date(targetExecutionTime).toLocaleTimeString()}, Current status: ${status}.`);
       }
     });
   } catch(e) {
