@@ -11,7 +11,7 @@
   :root {
       --font-primary: 'Inter', sans-serif;
       --radius-md: 8px; 
-      --radius-lg: 16px; /* Increased for a softer look */
+      --radius-lg: 16px;
       --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
       --transition-base: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       
@@ -91,7 +91,6 @@
   .dashboard-content { flex: 1; overflow-y: auto; padding: 24px 48px; position: relative; }
   .main-content-wrapper { width: 100%; max-width: 600px; margin: 0 auto; }
 
-  /* --- NEW --- Animation on load */
   @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
   .dashboard-header { margin-bottom: 24px; animation: fadeInUp 0.5s ease-out both; }
@@ -110,7 +109,6 @@
   .main-action-button { height: 60px; padding: 0 40px; border-radius: 99px; font-size: 20px; font-weight: 600; border: none; position: absolute; transition: all 0.25s ease; color: #fff; cursor: pointer; }
   .main-action-button:disabled { background-color: var(--color-disabled); cursor: not-allowed; transform: none !important; box-shadow: none !important; }
   
-  /* --- NEW --- Enhanced button hover effect */
   .main-action-button:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
 
   .btn-green, .btn-orange, .btn-red { background-color: var(--color-green); }
@@ -181,7 +179,6 @@
   .popup-item:hover { background: var(--color-bg-hover); }
   .popup-item label { flex: 1; }
   
-  /* New User Popup Styles */
   .user-popup-profile-section {
       display: flex;
       flex-direction: column;
@@ -291,6 +288,39 @@
   .admin-menu-sidebar.from-left { right: auto; left: 0; transform: translateX(-100%); border-left: none; border-right: 1px solid var(--color-border); }
   .admin-menu-sidebar.from-left.is-visible { transform: translateX(0); }
 
+  .team-sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px 12px 24px;
+    border-bottom: 1px solid var(--color-border);
+    flex-shrink: 0;
+  }
+  .team-sidebar-header h3 {
+    font-size: 18px;
+    font-weight: 600;
+  }
+  .close-sidebar-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    color: var(--color-text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+  }
+  .close-sidebar-btn:hover {
+    background-color: var(--color-bg-hover);
+  }
+  .team-list-container {
+    padding: 8px;
+    overflow-y: auto;
+    flex-grow: 1;
+  }
+
   .sidebar-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.2); z-index: 1999; opacity: 0; visibility: hidden; transition: opacity var(--transition-base); }
   .sidebar-backdrop.is-visible { opacity: 1; visibility: visible; }
   .status-pill { flex-shrink: 0; padding: 4px 10px; border-radius: 99px; font-size: 12px; font-weight: 500; text-align: center; color: #fff; }
@@ -364,6 +394,66 @@
   [data-icon="history"] { -webkit-mask-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"%3E%3Cpath d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"%3E%3C/path%3E%3Cpath d="M12 8v4l2 2"%3E%3C/path%3E%3C/svg%3E');}
   [data-icon="shield"] { -webkit-mask-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"%3E%3Cpath d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"%3E%3C/path%3E%3C/svg%3E');}
   
+  /* ===== START: ANNOUNCEMENT BANNER CSS ===== */
+  #announcement-banner {
+      background-color: #e0f2fe; /* Light blue background */
+      color: #0c4a6e; /* Dark blue text */
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 14px;
+      font-weight: 500;
+      border-bottom: 1px solid #bae6fd;
+      flex-shrink: 0;
+  }
+  body[data-theme="dark"] #announcement-banner {
+      background-color: #1e293b; /* Darker blue for dark mode */
+      color: #e2e8f0;
+      border-bottom: 1px solid #334155;
+  }
+  .announcement-content {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-grow: 1;
+      justify-content: center;
+      min-width: 0;
+  }
+  #announcement-text {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+  }
+  #announcement-gmeet-btn {
+      background-color: var(--color-brand);
+      color: #fff;
+      padding: 6px 14px;
+      border-radius: var(--radius-md);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 13px;
+      transition: background-color 0.2s;
+      flex-shrink: 0;
+  }
+  #announcement-gmeet-btn:hover {
+      background-color: #005bb5;
+  }
+  #announcement-close-btn {
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: inherit;
+      opacity: 0.6;
+      cursor: pointer;
+      line-height: 1;
+      padding: 0 8px;
+  }
+  #announcement-close-btn:hover {
+      opacity: 1;
+  }
+  /* ===== END: ANNOUNCEMENT BANNER CSS ===== */
+  
   .form-group { display: flex; flex-direction: column; }
   .form-group label { font-size: 12px; font-weight: 500; color: var(--color-text-secondary); margin-bottom: 4px; }
   .form-group input, .form-group select { width: 100%; height: 40px; border: 1px solid var(--color-border); background: var(--color-bg); border-radius: var(--radius-md); padding: 0 12px; font-size: 14px; color: var(--color-text-primary); }
@@ -429,6 +519,13 @@
   .automation-log-entry .log-meta { font-size: 11px; color: var(--color-text-secondary); margin-bottom: 2px; }
   .automation-log-entry .log-reason { font-style: italic; color: var(--color-text-secondary); }
 
+  .super-admin-only {
+    display: none !important;
+  }
+  .is-super-admin .super-admin-only {
+    display: flex !important;
+  }
+
   @media (max-width: 768px) {
       .dashboard-content { padding: 24px; }
       .greeting-title { font-size: 28px; }
@@ -485,7 +582,18 @@
 </head>
 <body data-theme="light">
 <div id="loading-indicator"><div class="loading-spinner"></div></div>
+
 <div class="app-layout">
+    <!-- ===== START: ANNOUNCEMENT BANNER HTML ===== -->
+    <div id="announcement-banner" style="display: none;">
+        <div class="announcement-content">
+            <span id="announcement-text"></span>
+            <a id="announcement-gmeet-btn" href="#" target="_blank" rel="noopener noreferrer">Join Meeting</a>
+        </div>
+        <button id="announcement-close-btn" aria-label="Dismiss announcement">&times;</button>
+    </div>
+    <!-- ===== END: ANNOUNCEMENT BANNER HTML ===== -->
+
     <header class="top-bar">
         <button id="admin-panel-btn" class="admin-panel-trigger is-admin" style="display: none;" aria-label="Open Admin Panel">
             <i class="icon" data-icon="shield"></i>
@@ -554,10 +662,10 @@
     <div class="popup-item" data-target="#admin-settings-panel">
         <i class="icon" data-icon="user-cog"></i><label>User Settings</label>
     </div>
-    <div class="popup-item" data-target="#admin-automation-panel">
+    <div class="popup-item super-admin-only" data-target="#admin-automation-panel">
         <i class="icon" data-icon="automation"></i><label>Automation</label>
     </div>
-    <div class="popup-item" data-target="#admin-log-panel">
+    <div class="popup-item super-admin-only" data-target="#admin-log-panel">
         <i class="icon" data-icon="history"></i><label>Automation Log</label>
     </div>
     <div class="popup-item" data-target="#admin-data-tools-panel">
@@ -710,8 +818,8 @@ const App = {
     state: { 
         currentUser: null, users: [], liveUpdateInterval: null, 
         initialSecondsOnLoad: 0, loadTimestamp: 0, isTeamDataLoaded: false,
-        theme: 'light', isAdmin: <?!= isAdmin ?>, adminEditContext: null,
-        adminPanelLocked: false, automationEventInterval: null,
+        theme: 'light', isAdmin: <?!= isAdmin ?>, isSuperAdmin: <?!= isSuperAdmin ?>,
+        adminEditContext: null, adminPanelLocked: false, automationEventInterval: null,
         isTeamDataLoading: false, teamDataLoadFailed: false
     },
     async init() {
@@ -726,11 +834,16 @@ const App = {
             document.body.classList.add('is-admin');
             document.querySelectorAll('.is-admin').forEach(el => el.style.display = 'flex');
             UI.populateAdminMenuSidebar();
+        }
+
+        if (this.state.isSuperAdmin) {
+            document.body.classList.add('is-super-admin');
             this.state.automationEventInterval = setInterval(() => this.checkForRecentEvents(), 30000);
         }
 
         const savedName = "<?!= userNameFromUrl ?>" || localStorage.getItem('timetracker_selectedName');
         await this.loadInitialData(savedName);
+        this.loadAnnouncements();
         API.getSpreadsheetUrl().then(url => UI.setGSheetLink(url));
         this.loadTeamDataInBackground();
     },
@@ -800,6 +913,12 @@ const App = {
                     container: document.getElementById('automation-log-container'),
                     clearBtn: document.getElementById('clear-log-btn')
                 }
+            },
+            announcement: {
+                banner: document.getElementById('announcement-banner'),
+                text: document.getElementById('announcement-text'),
+                gmeetBtn: document.getElementById('announcement-gmeet-btn'),
+                closeBtn: document.getElementById('announcement-close-btn')
             }
         };
     },
@@ -809,6 +928,11 @@ const App = {
         this.dom.userMenu.themeToggleBtn.addEventListener('click', () => this.toggleTheme());
         this.dom.userMenu.userSearchInput.addEventListener('input', (e) => UI.renderUserSelectionPopup(this.state.users, e.target.value));
         
+        this.dom.announcement.closeBtn.addEventListener('click', (e) => {
+            const eventId = e.currentTarget.dataset.eventId;
+            UI.hideAnnouncementBanner(eventId);
+        });
+
         if (this.state.isAdmin) {
             this.dom.admin.panelBtn.addEventListener('click', (e) => {
                 if (window.innerWidth > 768) {
@@ -944,9 +1068,15 @@ const UI = {
         const firstName = user.name.split(' ')[0];
         const hour = new Date().getHours();
         let greetingText;
-        if (hour < 12) { greetingText = "Good morning"; } 
-        else if (hour < 18) { greetingText = "Good afternoon"; } 
-        else { greetingText = "Good evening"; }
+        if (hour < 12) {
+          greetingText = "Good morning";
+        } else if (hour === 12) {
+          greetingText = "Good noon"; 
+        } else if (hour < 18) {
+          greetingText = "Good afternoon";
+        } else {
+          greetingText = "Good evening";
+        }
         App.dom.dashboard.greeting.textContent = `${greetingText}, ${firstName}`;
 
         App.dom.dashboard.date.textContent = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
@@ -1070,8 +1200,16 @@ Object.assign(App, {
         }
     },
     handleSettingChange(key, value) { API.saveUserPreference(App.state.currentUser.name, key, value); App.state.currentUser.preferences[key] = value; },
-    handleAdminEdit(actionKey, label, currentValue) { 
-        this.state.adminEditContext = { mode: 'edit', row: this.state.currentUser.actualDataRowForStatus, actionKey: actionKey };
+    handleAdminEdit(actionKey, label, currentValue) {
+        const user = this.state.currentUser;
+        const targetRow = user.actualDataRowForStatus || user.todaysRow;
+
+        if (!targetRow) {
+            UI.showToast(`Cannot edit: No schedule found for ${user.name} today.`, 'error');
+            return;
+        }
+        
+        this.state.adminEditContext = { mode: 'edit', row: targetRow, actionKey: actionKey };
         const targetId = '#admin-data-tools-panel';
         if (window.innerWidth > 768) {
             UI.showAdminHoverPanel(targetId, App.dom.admin.panelPopup, () => UI.prepareAdminPanel(targetId, `Edit ${label}`, currentValue));
@@ -1080,10 +1218,18 @@ Object.assign(App, {
         }
     },
     async handleAdminDelete(actionKey, label) {
+        const user = this.state.currentUser;
+        const targetRow = user.actualDataRowForStatus || user.todaysRow;
+
+        if (!targetRow) {
+            UI.showToast(`Cannot delete: No schedule found for ${user.name} today.`, 'error');
+            return;
+        }
+        
         if (confirm(`Are you sure you want to delete the "${label}" entry? This cannot be undone.`)) {
             UI.setLoading(true);
             try {
-                const result = await API.updateTimeEntry(this.state.currentUser.actualDataRowForStatus, actionKey, '');
+                const result = await API.updateTimeEntry(targetRow, actionKey, '');
                 if (!result.success) throw new Error(result.error || 'Failed to delete entry.');
                 UI.showToast(`${label} entry deleted.`, 'success');
                 await this.loadInitialData(this.state.currentUser.name);
@@ -1098,7 +1244,7 @@ Object.assign(App, {
         const newTimeValue = this.dom.admin.addEntryPanel.input.value;
         UI.setLoading(true);
         try {
-            const result = await API.updateTimeEntry(row || this.state.currentUser.actualDataRowForStatus, finalActionKey, newTimeValue);
+            const result = await API.updateTimeEntry(row || this.state.currentUser.todaysRow, finalActionKey, newTimeValue);
             if (!result.success) throw new Error(result.error || 'Failed to update entry.');
             UI.showToast('Time entry saved successfully.', 'success');
             await this.loadInitialData(this.state.currentUser.name);
@@ -1186,6 +1332,23 @@ Object.assign(App, {
         };
         reader.readAsDataURL(file);
         event.target.value = null;
+    },
+    async loadAnnouncements() {
+        try {
+            const events = await API.getTodaysCalendarEvents();
+            if (events && events.length > 0) {
+                const now = new Date();
+                const upcomingEvent = events
+                    .filter(event => new Date(event.endTime) > now)
+                    .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))[0];
+
+                if (upcomingEvent) {
+                    UI.showAnnouncementBanner(upcomingEvent);
+                }
+            }
+        } catch (error) {
+            console.error("Failed to load calendar announcements:", error);
+        }
     },
     saveTimedActionTriggers() {
         const triggers = [];
@@ -1536,6 +1699,31 @@ Object.assign(UI, {
         try { const { dataUrl } = await API.getProfilePicDataUrl(fileId); imgEl.src = dataUrl; } catch {}
     },
     loadAllVisibleProfilePictures() { document.querySelectorAll('img.profile-pic[data-pic-fileid]').forEach(img => this.updateProfilePic(img, img.dataset.picFileid)); },
+    showAnnouncementBanner(event) {
+        if (sessionStorage.getItem('dismissedEvent_' + event.id)) {
+            return;
+        }
+        const { banner, text, gmeetBtn, closeBtn } = App.dom.announcement;
+        const startTime = new Date(event.startTime).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+        
+        text.textContent = `${event.title} at ${startTime}.`;
+        
+        if (event.gmeetLink) {
+            gmeetBtn.href = event.gmeetLink;
+            gmeetBtn.style.display = 'inline-block';
+        } else {
+            gmeetBtn.style.display = 'none';
+        }
+        
+        closeBtn.dataset.eventId = event.id;
+        banner.style.display = 'flex';
+    },
+    hideAnnouncementBanner(eventId) {
+        App.dom.announcement.banner.style.display = 'none';
+        if (eventId) {
+            sessionStorage.setItem('dismissedEvent_' + eventId, 'true');
+        }
+    },
     showToast(message, type = 'info', duration = 4000) {
         const container = document.getElementById('toast-container'); const toast = document.createElement('div');
         toast.className = `toast-message toast-${type}`; toast.textContent = message;
@@ -1562,7 +1750,8 @@ const API = {
     saveUserPreference: (name, key, val) => API._run('saveUserPreference', name, key, val),
     getAutomationLogs: () => API._run('getAutomationLogs'),
     clearAutomationLogs: () => API._run('clearAutomationLogs'),
-    getRecentAutomationEvents: () => API._run('getRecentAutomationEvents')
+    getRecentAutomationEvents: () => API._run('getRecentAutomationEvents'),
+    getTodaysCalendarEvents: () => API._run('getTodaysCalendarEvents')
 };
 
 document.addEventListener('DOMContentLoaded', () => App.init());
