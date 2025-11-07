@@ -1659,9 +1659,6 @@ Object.assign(App, {
         // Re-render theme cards for the new mode
         Customize.renderThemeCards();
 
-        // Reload backgrounds to show wallpapers matching the new theme mode (light/dark)
-        Customize.loadBackgrounds();
-
         // Reapply color theme if one is selected
         const saved = Customize.getSavedCustomization();
         if (saved.selectedTheme) {
@@ -2397,14 +2394,8 @@ const Customize = {
         const defaultCard = grid.querySelector('.default-card');
         const uploadCard = grid.querySelector('.upload-card');
 
-        // Get current theme mode (light/dark)
-        const currentMode = document.body.dataset.theme || 'light';
-
-        // Filter predefined backgrounds to show only those matching current theme mode
-        const filteredBackgrounds = this.predefinedBackgrounds.filter(bg => bg.theme === currentMode);
-
-        // Render predefined backgrounds as loading placeholders
-        const predefinedLoadingCards = filteredBackgrounds.map(bg =>
+        // Render ALL predefined backgrounds (no filtering - show all wallpapers)
+        const predefinedLoadingCards = this.predefinedBackgrounds.map(bg =>
             `<div class="background-card loading predefined-bg" data-bg-id="${bg.id}" data-bg-name="${bg.name}" data-theme="${bg.theme}" data-theme-id="${bg.themeId}">
                 <div class="bg-label">${bg.name}</div>
             </div>`
@@ -2458,8 +2449,8 @@ const Customize = {
             grid.querySelector('.default-card').addEventListener('click', () => Customize.removeBackground());
             grid.querySelector('.upload-card').addEventListener('click', () => App.dom.customize.backgroundUploadInput.click());
 
-            // Load predefined backgrounds from Google Drive (filtered by current theme)
-            filteredBackgrounds.forEach(async (bg) => {
+            // Load predefined backgrounds from Google Drive
+            this.predefinedBackgrounds.forEach(async (bg) => {
                 const card = grid.querySelector(`[data-bg-id="${bg.id}"].predefined-bg`);
                 if (!card) return;
 
@@ -2469,9 +2460,9 @@ const Customize = {
                         card.style.backgroundImage = `url('${dataUrl.dataUrl}')`;
                         card.classList.remove('loading');
 
-                        // Add click listener
+                        // Add click listener - will auto-apply associated theme
                         card.addEventListener('click', () => {
-                            this.applyBackground(card.dataset.bgId, card.style.backgroundImage);
+                            this.applyBackground(card.dataset.bgId, card.style.backgroundImage, false, bg);
                         });
                     }
                 } catch (e) {
@@ -2494,8 +2485,8 @@ const Customize = {
             grid.querySelector('.default-card').addEventListener('click', () => Customize.removeBackground());
             grid.querySelector('.upload-card').addEventListener('click', () => App.dom.customize.backgroundUploadInput.click());
 
-            // Try to load predefined backgrounds even if user backgrounds failed (filtered by current theme)
-            filteredBackgrounds.forEach(async (bg) => {
+            // Try to load predefined backgrounds even if user backgrounds failed
+            this.predefinedBackgrounds.forEach(async (bg) => {
                 const card = grid.querySelector(`[data-bg-id="${bg.id}"].predefined-bg`);
                 if (!card) return;
 
@@ -2506,7 +2497,7 @@ const Customize = {
                         card.classList.remove('loading');
 
                         card.addEventListener('click', () => {
-                            this.applyBackground(card.dataset.bgId, card.style.backgroundImage);
+                            this.applyBackground(card.dataset.bgId, card.style.backgroundImage, false, bg);
                         });
                     }
                 } catch (e) {
@@ -2547,16 +2538,30 @@ const Customize = {
         }
     },
 
-    applyBackground(bgId, bgImage, silent = false) {
-        console.log('applyBackground called:', { bgId, bgImagePreview: bgImage?.substring(0, 50) + '...' });
+    applyBackground(bgId, bgImage, silent = false, bgMetadata = null) {
+        console.log('applyBackground called:', { bgId, bgImagePreview: bgImage?.substring(0, 50) + '...', bgMetadata });
 
         document.body.style.backgroundImage = bgImage;
         document.body.classList.add('has-custom-bg');
 
-        // Extract image URL from bgImage string for brightness detection
-        const urlMatch = bgImage.match(/url\(['"]?([^'"]+)['"]?\)/);
-        if (urlMatch && urlMatch[1]) {
-            this.detectImageBrightness(urlMatch[1]);
+        // If this is a predefined background, apply its associated theme
+        if (bgMetadata && bgMetadata.theme && bgMetadata.themeId) {
+            console.log(`Applying predefined background theme: ${bgMetadata.theme} mode, ${bgMetadata.themeId} color`);
+
+            // Switch to the correct theme mode (light/dark) if needed
+            const currentMode = document.body.dataset.theme || 'light';
+            if (currentMode !== bgMetadata.theme) {
+                App.setTheme(bgMetadata.theme);
+            }
+
+            // Apply the associated color theme
+            this.applyTheme(bgMetadata.themeId);
+        } else {
+            // Only use auto-detect for user-uploaded backgrounds
+            const urlMatch = bgImage.match(/url\(['"]?([^'"]+)['"]?\)/);
+            if (urlMatch && urlMatch[1]) {
+                this.detectImageBrightness(urlMatch[1]);
+            }
         }
 
         // Update active state
@@ -2913,6 +2918,9 @@ const Customize = {
         if (saved.selectedBackground) {
             console.log('Restoring background ID:', saved.selectedBackground);
 
+            // Check if this is a predefined background
+            const predefinedBg = this.predefinedBackgrounds.find(bg => bg.id === saved.selectedBackground);
+
             try {
                 // Try to get the background image from cache or Drive
                 const result = await API.getProfilePicDataUrl(saved.selectedBackground);
@@ -2923,8 +2931,20 @@ const Customize = {
                     document.body.style.backgroundImage = bgImage;
                     document.body.classList.add('has-custom-bg');
 
-                    // Extract image URL for brightness detection
-                    this.detectImageBrightness(result.dataUrl);
+                    // If predefined background, apply its theme; otherwise use brightness detection
+                    if (predefinedBg) {
+                        console.log(`Restoring predefined background with theme: ${predefinedBg.theme} ${predefinedBg.themeId}`);
+                        // Switch to correct theme mode if needed
+                        const currentMode = document.body.dataset.theme || 'light';
+                        if (currentMode !== predefinedBg.theme) {
+                            App.setTheme(predefinedBg.theme);
+                        }
+                        // Apply the associated color theme
+                        this.applyTheme(predefinedBg.themeId);
+                    } else {
+                        // User-uploaded background: use brightness detection
+                        this.detectImageBrightness(result.dataUrl);
+                    }
 
                     console.log('Background restored successfully from cache/Drive');
                 } else {
