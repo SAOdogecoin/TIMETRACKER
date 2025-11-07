@@ -2909,8 +2909,8 @@ const Customize = {
         const saved = this.getSavedCustomization();
         console.log('Loading saved customization:', saved);
 
-        // Apply saved theme
-        if (saved.selectedTheme) {
+        // Apply saved theme first (only if no background, since background will set theme)
+        if (saved.selectedTheme && !saved.selectedBackground) {
             this.applyTheme(saved.selectedTheme);
         }
 
@@ -2927,24 +2927,9 @@ const Customize = {
                 if (result.success && result.dataUrl) {
                     const bgImage = `url('${result.dataUrl}')`;
 
-                    // Apply background styles immediately
-                    document.body.style.backgroundImage = bgImage;
-                    document.body.classList.add('has-custom-bg');
-
-                    // If predefined background, apply its theme; otherwise use brightness detection
-                    if (predefinedBg) {
-                        console.log(`Restoring predefined background with theme: ${predefinedBg.theme} ${predefinedBg.themeId}`);
-                        // Switch to correct theme mode if needed
-                        const currentMode = document.body.dataset.theme || 'light';
-                        if (currentMode !== predefinedBg.theme) {
-                            App.setTheme(predefinedBg.theme);
-                        }
-                        // Apply the associated color theme
-                        this.applyTheme(predefinedBg.themeId);
-                    } else {
-                        // User-uploaded background: use brightness detection
-                        this.detectImageBrightness(result.dataUrl);
-                    }
+                    // Use the proper applyBackground function to ensure persistence
+                    // Pass silent=true to avoid showing toast on page load
+                    this.applyBackground(saved.selectedBackground, bgImage, true, predefinedBg);
 
                     console.log('Background restored successfully from cache/Drive');
                 } else {
