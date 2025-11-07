@@ -2513,6 +2513,9 @@ const Customize = {
         const pixelCount = totalSaturatedPixels;
         if (pixelCount < 100) {
             console.log('Image is mostly grayscale, using default theme');
+            // First switch to appropriate mode based on brightness
+            App.setTheme(isDark ? 'dark' : 'light');
+            // Then apply default color theme
             this.applyTheme('default');
             return;
         }
@@ -2540,13 +2543,20 @@ const Customize = {
             totalSaturatedPixels,
             dominantColor,
             isDark,
+            selectedMode: isDark ? 'dark' : 'light',
             selectedTheme: dominantColor
         });
 
-        // Apply the appropriate theme
-        // The theme system already handles light/dark mode separately
+        // First switch to appropriate mode (dark/light) based on background brightness
+        App.setTheme(isDark ? 'dark' : 'light');
+
+        // Then apply the color theme (will use dark/light variant based on mode)
         this.applyTheme(dominantColor);
-        UI.showToast(`${dominantColor.charAt(0).toUpperCase() + dominantColor.slice(1)} theme auto-selected!`, 'success');
+
+        // Show toast with both mode and color
+        const modeName = isDark ? 'Dark' : 'Light';
+        const colorName = dominantColor.charAt(0).toUpperCase() + dominantColor.slice(1);
+        UI.showToast(`${colorName} ${modeName} theme auto-selected!`, 'success');
     },
 
     async handleBackgroundUpload(event) {
