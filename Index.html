@@ -51,6 +51,12 @@
       --color-sidebar-bg: #18181B;
   }
 
+  /* Dark background image - override text colors only */
+  body.has-custom-bg.dark-bg {
+      --color-text-primary: #F4F4F5 !important;
+      --color-text-secondary: #E4E4E7 !important;
+  }
+
   /* Base & Layout */
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html { font-family: var(--font-primary); -webkit-font-smoothing: antialiased; }
@@ -114,6 +120,18 @@
   .top-bar-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
   .top-bar-btn { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--color-border); background: var(--color-surface); cursor: pointer; color: var(--color-text-primary); transition: background-color 0.2s; }
   .top-bar-btn:hover { background: var(--color-bg-hover); }
+
+  /* Remove circle from customize trigger */
+  #customize-trigger {
+    border: none;
+    background: transparent;
+    width: auto;
+    height: auto;
+  }
+  #customize-trigger:hover {
+    background: transparent;
+    opacity: 0.7;
+  }
   
   .admin-panel-trigger {
       display: flex;
@@ -403,6 +421,30 @@
     box-shadow: -10px 0 25px -10px rgba(0,0,0,0.1);
   }
   .customize-sidebar.is-visible { transform: translateX(0); }
+
+  /* Desktop: Make it a popup instead of sidebar */
+  @media (min-width: 769px) {
+    .customize-sidebar {
+      width: 420px;
+      height: auto;
+      max-height: 80vh;
+      top: auto;
+      right: 24px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.25);
+      transform: scale(0.95) translateY(-10px);
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.15s ease-out;
+      transform-origin: top right;
+    }
+    .customize-sidebar.is-visible {
+      transform: scale(1) translateY(0);
+      opacity: 1;
+      visibility: visible;
+    }
+  }
 
   .customize-header {
     display: flex;
@@ -1217,10 +1259,10 @@ const App = {
         });
 
         // Customize panel event listeners
-        this.dom.customize.trigger.addEventListener('click', () => Customize.toggleSidebar(true));
-        this.dom.customize.closeBtn.addEventListener('click', () => Customize.toggleSidebar(false));
+        this.dom.customize.trigger.addEventListener('click', (e) => Customize.toggleCustomize(e));
+        this.dom.customize.closeBtn.addEventListener('click', () => Customize.toggleCustomize());
         document.getElementById('sidebar-backdrop').addEventListener('click', () => {
-            Customize.toggleSidebar(false);
+            Customize.toggleCustomize();
             UI.toggleAdminMenuSidebar(false);
         });
 
@@ -1721,6 +1763,17 @@ Object.assign(UI, {
                  UI.hideAdminSlidePanel();
             }
         }
+
+        // Handle customize panel on desktop
+        const customizeSidebar = App.dom.customize.sidebar;
+        const customizeTrigger = App.dom.customize.trigger;
+        const isDesktop = window.innerWidth > 768;
+        if (isDesktop && customizeSidebar.classList.contains('is-visible')) {
+            if (!customizeSidebar.contains(event.target) && !customizeTrigger.contains(event.target)) {
+                customizeSidebar.classList.remove('is-visible');
+            }
+        }
+
         document.querySelectorAll('.popup-menu.show').forEach(popup => {
             let triggerId;
             if (popup.id === 'user-actions-popup') triggerId = 'user-menu-trigger';
@@ -2155,17 +2208,17 @@ const Customize = {
         const theme = this.themes[currentMode].find(t => t.id === themeId);
         if (!theme) return;
 
-        // Apply all color variables
-        document.documentElement.style.setProperty('--color-text-primary', theme.text);
-        document.documentElement.style.setProperty('--color-text-secondary', this.adjustOpacity(theme.text, 0.7));
-        document.documentElement.style.setProperty('--color-surface-secondary', theme.greyWindow);
-        document.documentElement.style.setProperty('--color-surface', theme.whiteWindow);
-        document.documentElement.style.setProperty('--color-bg', theme.whiteWindow);
-        document.documentElement.style.setProperty('--color-brand', theme.buttons);
+        // Apply all color variables to body element to override CSS defaults
+        document.body.style.setProperty('--color-text-primary', theme.text);
+        document.body.style.setProperty('--color-text-secondary', this.adjustOpacity(theme.text, 0.7));
+        document.body.style.setProperty('--color-surface-secondary', theme.greyWindow);
+        document.body.style.setProperty('--color-surface', theme.whiteWindow);
+        document.body.style.setProperty('--color-bg', theme.whiteWindow);
+        document.body.style.setProperty('--color-brand', theme.buttons);
 
         // Update border colors to match theme
         const borderColor = this.adjustOpacity(theme.text, 0.1);
-        document.documentElement.style.setProperty('--color-border', borderColor);
+        document.body.style.setProperty('--color-border', borderColor);
 
         // Update active state
         App.dom.customize.themeCardsGrid.querySelectorAll('.theme-card').forEach(card => {
@@ -2323,13 +2376,15 @@ const Customize = {
                 const brightness = colorSum / (data.length / 4);
                 const isDark = brightness < 128;
 
-                // Auto-switch light/dark mode based on background brightness
+                // Store background brightness info
+                document.body.dataset.bgBrightness = isDark ? 'dark' : 'light';
+
+                // Only adjust text color based on background brightness
+                // Don't change theme mode, only override text colors
                 if (isDark) {
                     document.body.classList.add('dark-bg');
-                    App.setTheme('dark');
                 } else {
                     document.body.classList.remove('dark-bg');
-                    App.setTheme('light');
                 }
             } catch (e) {
                 console.log('Could not analyze image brightness:', e);
@@ -2373,14 +2428,40 @@ const Customize = {
         event.target.value = null;
     },
 
-    toggleSidebar(show) {
-        App.dom.customize.sidebar.classList.toggle('is-visible', show);
-        document.getElementById('sidebar-backdrop').classList.toggle('is-visible', show);
+    toggleCustomize(event) {
+        const sidebar = App.dom.customize.sidebar;
+        const isCurrentlyVisible = sidebar.classList.contains('is-visible');
+        const isDesktop = window.innerWidth > 768;
 
-        if (show) {
-            // Close other sidebars
-            UI.toggleAdminMenuSidebar(false);
+        if (event && event.stopPropagation) {
+            event.stopPropagation();
         }
+
+        // Close other popups and sidebars
+        document.querySelectorAll('.popup-menu.show').forEach(p => p.classList.remove('show'));
+        UI.toggleAdminMenuSidebar(false);
+
+        if (!isCurrentlyVisible) {
+            sidebar.classList.add('is-visible');
+
+            // On desktop, position as popup
+            if (isDesktop && event && App.dom.customize.trigger) {
+                const rect = App.dom.customize.trigger.getBoundingClientRect();
+                sidebar.style.top = `${rect.bottom + 8}px`;
+                sidebar.style.right = `${window.innerWidth - rect.right}px`;
+            } else if (!isDesktop) {
+                // On mobile, show backdrop
+                document.getElementById('sidebar-backdrop').classList.add('is-visible');
+            }
+        } else {
+            sidebar.classList.remove('is-visible');
+            document.getElementById('sidebar-backdrop').classList.remove('is-visible');
+        }
+    },
+
+    // Keep old function for compatibility
+    toggleSidebar(show) {
+        this.toggleCustomize(show ? {} : null);
     },
 
     saveCustomization(data) {
