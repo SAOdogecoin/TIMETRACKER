@@ -745,6 +745,25 @@
     color: var(--color-text-secondary);
   }
 
+  /* Predefined background label */
+  .background-card .bg-label {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 6px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .background-card:hover .bg-label {
+    opacity: 1;
+  }
+
   .reset-btn {
     width: 100%;
     height: 40px;
@@ -2206,6 +2225,40 @@ Object.assign(UI, {
 });
 
 const Customize = {
+    // Predefined backgrounds available to all users
+    predefinedBackgrounds: [
+        {
+            id: 'gradient-blue',
+            name: 'Blue Gradient',
+            image: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+        },
+        {
+            id: 'gradient-sunset',
+            name: 'Sunset',
+            image: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)'
+        },
+        {
+            id: 'gradient-ocean',
+            name: 'Ocean',
+            image: 'linear-gradient(135deg, #2ebf91 0%, #8360c3 100%)'
+        },
+        {
+            id: 'gradient-purple',
+            name: 'Purple Dream',
+            image: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)'
+        },
+        {
+            id: 'gradient-fire',
+            name: 'Fire',
+            image: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
+        },
+        {
+            id: 'gradient-forest',
+            name: 'Forest',
+            image: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
+        }
+    ],
+
     themes: {
         light: [
             {
@@ -2348,26 +2401,33 @@ const Customize = {
         const defaultCard = grid.querySelector('.default-card');
         const uploadCard = grid.querySelector('.upload-card');
 
+        // Render predefined backgrounds
+        const predefinedCards = this.predefinedBackgrounds.map(bg =>
+            `<div class="background-card predefined-bg" data-bg-id="${bg.id}" style="background-image: ${bg.image};">
+                <div class="bg-label">${bg.name}</div>
+            </div>`
+        ).join('');
+
         try {
             const result = await API.getBackgroundImages();
+            const userBackgroundsHtml = [];
+
             if (result.success && result.images && result.images.length > 0) {
-                // First render loading placeholders
+                // First render loading placeholders for user backgrounds
                 const loadingCards = result.images.map(img =>
-                    `<div class="background-card loading" data-bg-id="${img.id}">
+                    `<div class="background-card loading" data-bg-id="${img.id}" data-user-bg="true">
                         <button class="delete-bg-btn" data-delete-id="${img.id}" onclick="Customize.deleteBackground('${img.id}', event)">
                             <i class="icon" data-icon="trash"></i>
                         </button>
                     </div>`
                 );
-                grid.innerHTML = defaultCard.outerHTML + uploadCard.outerHTML + loadingCards.join('');
 
-                // Re-attach default and upload card listeners
-                grid.querySelector('.default-card').addEventListener('click', () => Customize.removeBackground());
-                grid.querySelector('.upload-card').addEventListener('click', () => App.dom.customize.backgroundUploadInput.click());
+                // Render: default + upload + predefined + user backgrounds
+                grid.innerHTML = defaultCard.outerHTML + uploadCard.outerHTML + predefinedCards + loadingCards.join('');
 
-                // Load images asynchronously
+                // Load user images asynchronously
                 result.images.forEach(async (img) => {
-                    const card = grid.querySelector(`[data-bg-id="${img.id}"]`);
+                    const card = grid.querySelector(`[data-bg-id="${img.id}"][data-user-bg="true"]`);
                     if (!card) return;
 
                     try {
@@ -2388,9 +2448,35 @@ const Customize = {
                         card.classList.remove('loading');
                     }
                 });
+            } else {
+                // No user backgrounds, just render default + upload + predefined
+                grid.innerHTML = defaultCard.outerHTML + uploadCard.outerHTML + predefinedCards;
             }
+
+            // Re-attach default and upload card listeners
+            grid.querySelector('.default-card').addEventListener('click', () => Customize.removeBackground());
+            grid.querySelector('.upload-card').addEventListener('click', () => App.dom.customize.backgroundUploadInput.click());
+
+            // Add click listeners to predefined backgrounds
+            grid.querySelectorAll('.predefined-bg').forEach(card => {
+                card.addEventListener('click', () => {
+                    this.applyBackground(card.dataset.bgId, card.style.backgroundImage);
+                });
+            });
+
         } catch (error) {
             console.error('Error loading backgrounds:', error);
+            // On error, still show predefined backgrounds
+            grid.innerHTML = defaultCard.outerHTML + uploadCard.outerHTML + predefinedCards;
+
+            grid.querySelector('.default-card').addEventListener('click', () => Customize.removeBackground());
+            grid.querySelector('.upload-card').addEventListener('click', () => App.dom.customize.backgroundUploadInput.click());
+
+            grid.querySelectorAll('.predefined-bg').forEach(card => {
+                card.addEventListener('click', () => {
+                    this.applyBackground(card.dataset.bgId, card.style.backgroundImage);
+                });
+            });
         }
     },
 
@@ -2428,10 +2514,20 @@ const Customize = {
         document.body.style.backgroundImage = bgImage;
         document.body.classList.add('has-custom-bg');
 
-        // Extract image URL from bgImage string
-        const urlMatch = bgImage.match(/url\(['"]?([^'"]+)['"]?\)/);
-        if (urlMatch && urlMatch[1]) {
-            this.detectImageBrightness(urlMatch[1]);
+        // Check if it's a gradient (predefined) or image URL
+        const isGradient = bgImage.includes('linear-gradient') || bgImage.includes('radial-gradient');
+
+        if (isGradient) {
+            // For gradients, apply dark mode automatically for better contrast
+            App.setTheme('dark');
+            this.applyTheme('default');
+            document.body.classList.add('dark-bg');
+        } else {
+            // Extract image URL from bgImage string for brightness detection
+            const urlMatch = bgImage.match(/url\(['"]?([^'"]+)['"]?\)/);
+            if (urlMatch && urlMatch[1]) {
+                this.detectImageBrightness(urlMatch[1]);
+            }
         }
 
         // Update active state
@@ -2762,10 +2858,20 @@ const Customize = {
             document.body.style.backgroundImage = saved.backgroundImage;
             document.body.classList.add('has-custom-bg');
 
-            // Extract image URL for brightness detection
-            const urlMatch = saved.backgroundImage.match(/url\(['"]?([^'"]+)['"]?\)/);
-            if (urlMatch && urlMatch[1]) {
-                this.detectImageBrightness(urlMatch[1]);
+            // Check if it's a gradient or image
+            const isGradient = saved.backgroundImage.includes('linear-gradient') || saved.backgroundImage.includes('radial-gradient');
+
+            if (isGradient) {
+                // For gradients, apply dark mode automatically
+                App.setTheme('dark');
+                this.applyTheme('default');
+                document.body.classList.add('dark-bg');
+            } else {
+                // Extract image URL for brightness detection
+                const urlMatch = saved.backgroundImage.match(/url\(['"]?([^'"]+)['"]?\)/);
+                if (urlMatch && urlMatch[1]) {
+                    this.detectImageBrightness(urlMatch[1]);
+                }
             }
 
             // Set active state on the correct background card after grid loads
