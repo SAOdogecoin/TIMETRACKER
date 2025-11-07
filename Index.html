@@ -217,7 +217,28 @@
   
   .user-menu-container { position: relative; top: 0; right: 0; }
   .profile-pic { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; background-color: var(--color-border); }
-  
+
+  /* Loading state for images */
+  .profile-pic.loading,
+  .background-card.loading {
+    position: relative;
+    overflow: hidden;
+  }
+  .profile-pic.loading::after,
+  .background-card.loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    animation: shimmer 1.5s infinite;
+  }
+  @keyframes shimmer {
+    to { left: 100%; }
+  }
+
   #user-menu-pic {
     width: 48px;
     height: 48px;
@@ -2133,8 +2154,21 @@ Object.assign(UI, {
     },
     async updateProfilePic(imgEl, fileId) {
         const defaultPic = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIiBmaWxsPSIjOWNhM2FmIj4KICA8Y2lyY2xlIGN4PSI1MCIgY3k9IjM1IiByPSIyMCIvPgogIDxwYXRoIGQ9Ik01MCA2MCBDIDMwIDYwLCAyMCA4MCwgMjAgMTAwIEwgODAgMTAwIEMgODAgODAsIDcwIDYwLCA1MCA2MCBaIi8+Cjwvc3ZnPg==';
-        imgEl.src = defaultPic; if (!fileId || fileId === 'null') return;
-        try { const { dataUrl } = await API.getProfilePicDataUrl(fileId); imgEl.src = dataUrl; } catch {}
+        imgEl.src = defaultPic;
+        if (!fileId || fileId === 'null') return;
+
+        // Show loading state
+        imgEl.classList.add('loading');
+
+        try {
+            const { dataUrl } = await API.getProfilePicDataUrl(fileId);
+            imgEl.src = dataUrl;
+        } catch (e) {
+            console.error('Failed to load profile pic:', e);
+        } finally {
+            // Remove loading state
+            imgEl.classList.remove('loading');
+        }
     },
     loadAllVisibleProfilePictures() { document.querySelectorAll('img.profile-pic[data-pic-fileid]').forEach(img => this.updateProfilePic(img, img.dataset.picFileid)); },
     showAnnouncementBanner(event) {
@@ -2316,32 +2350,41 @@ const Customize = {
         try {
             const result = await API.getBackgroundImages();
             if (result.success && result.images && result.images.length > 0) {
-                const backgroundCards = await Promise.all(result.images.map(async (img) => {
-                    const dataUrl = await API.getProfilePicDataUrl(img.id);
-                    if (dataUrl.success) {
-                        return `<div class="background-card" data-bg-id="${img.id}"
-                                     style="background-image: url('${dataUrl.dataUrl}');">
-                                    <button class="delete-bg-btn" data-delete-id="${img.id}" onclick="Customize.deleteBackground('${img.id}', event)">
-                                        <i class="icon" data-icon="trash"></i>
-                                    </button>
-                                </div>`;
-                    }
-                    return '';
-                }));
-
-                grid.innerHTML = uploadCard.outerHTML + backgroundCards.join('');
+                // First render loading placeholders
+                const loadingCards = result.images.map(img =>
+                    `<div class="background-card loading" data-bg-id="${img.id}">
+                        <button class="delete-bg-btn" data-delete-id="${img.id}" onclick="Customize.deleteBackground('${img.id}', event)">
+                            <i class="icon" data-icon="trash"></i>
+                        </button>
+                    </div>`
+                );
+                grid.innerHTML = uploadCard.outerHTML + loadingCards.join('');
 
                 // Re-attach upload card listener
                 grid.querySelector('.upload-card').addEventListener('click', () => App.dom.customize.backgroundUploadInput.click());
 
-                // Add click listeners to background cards
-                grid.querySelectorAll('.background-card:not(.upload-card)').forEach(card => {
-                    card.addEventListener('click', (e) => {
-                        // Don't apply background if clicking delete button
-                        if (!e.target.closest('.delete-bg-btn')) {
-                            this.applyBackground(card.dataset.bgId, card.style.backgroundImage);
+                // Load images asynchronously
+                result.images.forEach(async (img) => {
+                    const card = grid.querySelector(`[data-bg-id="${img.id}"]`);
+                    if (!card) return;
+
+                    try {
+                        const dataUrl = await API.getProfilePicDataUrl(img.id);
+                        if (dataUrl.success) {
+                            card.style.backgroundImage = `url('${dataUrl.dataUrl}')`;
+                            card.classList.remove('loading');
+
+                            // Add click listener
+                            card.addEventListener('click', (e) => {
+                                if (!e.target.closest('.delete-bg-btn')) {
+                                    this.applyBackground(card.dataset.bgId, card.style.backgroundImage);
+                                }
+                            });
                         }
-                    });
+                    } catch (e) {
+                        console.error('Failed to load background:', e);
+                        card.classList.remove('loading');
+                    }
                 });
             }
         } catch (error) {
@@ -2717,12 +2760,135 @@ const Customize = {
     }
 };
 
+// Image Cache Manager - speeds up Drive image loading by caching in localStorage
+const CacheManager = {
+    prefix: 'img_cache_',
+    expiryPrefix: 'img_expiry_',
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+
+    getCachedImage(fileId) {
+        try {
+            const cachedData = localStorage.getItem(this.prefix + fileId);
+            const expiryTime = localStorage.getItem(this.expiryPrefix + fileId);
+
+            if (!cachedData || !expiryTime) {
+                return null;
+            }
+
+            // Check if cache is expired
+            if (Date.now() > parseInt(expiryTime)) {
+                this.clearCachedImage(fileId);
+                return null;
+            }
+
+            return cachedData;
+        } catch (e) {
+            console.error('Error reading cache:', e);
+            return null;
+        }
+    },
+
+    setCachedImage(fileId, dataUrl) {
+        try {
+            const expiryTime = Date.now() + this.maxAge;
+            localStorage.setItem(this.prefix + fileId, dataUrl);
+            localStorage.setItem(this.expiryPrefix + fileId, expiryTime.toString());
+        } catch (e) {
+            console.error('Error setting cache:', e);
+            // If quota exceeded, clear old cache and retry
+            if (e.name === 'QuotaExceededError') {
+                this.clearOldCache();
+                try {
+                    localStorage.setItem(this.prefix + fileId, dataUrl);
+                    localStorage.setItem(this.expiryPrefix + fileId, (Date.now() + this.maxAge).toString());
+                } catch (e2) {
+                    console.error('Still failed after clearing cache:', e2);
+                }
+            }
+        }
+    },
+
+    clearCachedImage(fileId) {
+        try {
+            localStorage.removeItem(this.prefix + fileId);
+            localStorage.removeItem(this.expiryPrefix + fileId);
+        } catch (e) {
+            console.error('Error clearing cache:', e);
+        }
+    },
+
+    clearOldCache() {
+        try {
+            const now = Date.now();
+            const keysToRemove = [];
+
+            // Find all expired cache entries
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith(this.expiryPrefix)) {
+                    const expiryTime = parseInt(localStorage.getItem(key));
+                    if (now > expiryTime) {
+                        const fileId = key.replace(this.expiryPrefix, '');
+                        keysToRemove.push(fileId);
+                    }
+                }
+            }
+
+            // Remove expired entries
+            keysToRemove.forEach(fileId => this.clearCachedImage(fileId));
+
+            console.log(`Cleared ${keysToRemove.length} expired cache entries`);
+        } catch (e) {
+            console.error('Error clearing old cache:', e);
+        }
+    },
+
+    clearAllCache() {
+        try {
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && (key.startsWith(this.prefix) || key.startsWith(this.expiryPrefix))) {
+                    keysToRemove.push(key);
+                }
+            }
+            keysToRemove.forEach(key => localStorage.removeItem(key));
+            console.log(`Cleared all ${keysToRemove.length / 2} cached images`);
+        } catch (e) {
+            console.error('Error clearing all cache:', e);
+        }
+    }
+};
+
 const API = {
     _run: (fn, ...a) => new Promise((res, rej) => google.script.run.withSuccessHandler(res).withFailureHandler(rej)[fn](...a)),
     getInitialLoadData: (n) => API._run('getInitialLoadData', n),
     getAllUsersStatus: () => API._run('getAllUsersStatus'),
     processTimeEntry: (name, action) => API._run('processTimeEntry', name, action),
-    getProfilePicDataUrl: (id) => API._run('getProfilePicDataUrlForFileId', id),
+
+    // Enhanced with caching for fast subsequent loads
+    async getProfilePicDataUrl(id) {
+        // Check cache first
+        const cached = CacheManager.getCachedImage(id);
+        if (cached) {
+            return { success: true, dataUrl: cached };
+        }
+
+        // Fetch from Drive if not cached
+        try {
+            const result = await API._run('getProfilePicDataUrlForFileId', id);
+            if (result && result.dataUrl) {
+                // Cache the result for next time
+                CacheManager.setCachedImage(id, result.dataUrl);
+                return { success: true, dataUrl: result.dataUrl };
+            }
+            return result;
+        } catch (error) {
+            console.error('Error fetching image from Drive:', error);
+            throw error;
+        }
+    },
+
     getSpreadsheetUrl: () => API._run('getSpreadsheetUrl'),
     updateTimeEntry: (row, key, time) => API._run('updateTimeEntry', row, key, time),
     deleteTimeEntry: (row, key) => API._run('deleteTimeEntry', row, key),
