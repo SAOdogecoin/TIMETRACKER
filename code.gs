@@ -650,9 +650,17 @@ function getProfilePicDataUrlForFileId(fileId) {
     const userEmail = Session.getActiveUser().getEmail();
     const sanitizedEmail = userEmail.replace(/[@.]/g, '_');
 
-    // Security check: Only allow users to view their own backgrounds
-    // (or allow admins to view any)
-    if (!fileName.startsWith(`bg_custom_${sanitizedEmail}_`) && !isAdmin_()) {
+    // Security check: Allow users to view:
+    // 1. Their own uploaded backgrounds (bg_custom_${email}_)
+    // 2. Predefined system backgrounds (don't start with bg_custom_)
+    // 3. Admins can view everything
+    // Block: Other users' backgrounds (bg_custom_${otherEmail}_)
+
+    const isUserOwnBackground = fileName.startsWith(`bg_custom_${sanitizedEmail}_`);
+    const isPredefinedBackground = !fileName.startsWith('bg_custom_');
+    const isAdmin = isAdmin_();
+
+    if (!isUserOwnBackground && !isPredefinedBackground && !isAdmin) {
       return { success: false, error: 'Permission denied. You can only view your own backgrounds.' };
     }
 

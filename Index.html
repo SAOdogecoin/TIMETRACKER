@@ -2944,7 +2944,8 @@ const Customize = {
             if (result.success) {
                 UI.showToast('Background uploaded successfully!', 'success');
                 await this.loadBackgrounds();
-                this.applyBackground(result.fileId, compressedDataUrl);
+                // Apply background with proper CSS url() format
+                this.applyBackground(result.fileId, `url('${compressedDataUrl}')`);
             } else {
                 throw new Error(result.error || 'Failed to upload background');
             }
