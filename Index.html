@@ -1659,6 +1659,9 @@ Object.assign(App, {
         // Re-render theme cards for the new mode
         Customize.renderThemeCards();
 
+        // Reload backgrounds to show wallpapers matching the new theme mode (light/dark)
+        Customize.loadBackgrounds();
+
         // Reapply color theme if one is selected
         const saved = Customize.getSavedCustomization();
         if (saved.selectedTheme) {
@@ -2242,9 +2245,14 @@ const Customize = {
     // Predefined backgrounds from Google Drive - available to all users
     // Add your Google Drive file IDs and names here
     predefinedBackgrounds: [
-        // Example: { id: 'YOUR_GDRIVE_FILE_ID_HERE', name: 'Mountain Sunset' },
-        // Example: { id: 'ANOTHER_GDRIVE_FILE_ID', name: 'Ocean Waves' },
-        // Add more backgrounds below:
+        { id: '15AMwSKbnhKGJTBwJOkSQ5kPv_yjoUrKS', name: 'Desk Aesthetic', theme: 'light', themeId: 'default' },
+        { id: '16CMHSSqKCzMO-3H5Tcv-gkYBNLvyFZIa', name: 'Eyewear Fashion', theme: 'light', themeId: 'blue' },
+        { id: '1VPvaVtlZg3XBN8aHjqCD7LeKcCmNDJlI', name: 'Fresh Prep', theme: 'light', themeId: 'green' },
+        { id: '1sF2OKXnBJ0dD3XSMlry2QEiVWTDqH-a1', name: 'Minimal Workspace', theme: 'light', themeId: 'pink' },
+        { id: '1yDt4S0ym3cisFzlOhKFe2A8-4xlleHPW', name: 'Stormy Peaks', theme: 'dark', themeId: 'default' },
+        { id: '1ZVCPPhUwtwGZVeinTMYrzXo5ni0BHB5c', name: 'Starry Night', theme: 'dark', themeId: 'blue' },
+        { id: '1s_b0p1Tb5qswk2mhe9RuP4HTHQgxeYKL', name: 'Ocean Keeper', theme: 'dark', themeId: 'green' },
+        { id: '1ix8-hhwlQM-sa8-yHnXCM8hhM_g4fWNW', name: 'Blushing Blooms', theme: 'dark', themeId: 'pink' },
     ],
 
     themes: {
@@ -2389,9 +2397,15 @@ const Customize = {
         const defaultCard = grid.querySelector('.default-card');
         const uploadCard = grid.querySelector('.upload-card');
 
+        // Get current theme mode (light/dark)
+        const currentMode = document.body.dataset.theme || 'light';
+
+        // Filter predefined backgrounds to show only those matching current theme mode
+        const filteredBackgrounds = this.predefinedBackgrounds.filter(bg => bg.theme === currentMode);
+
         // Render predefined backgrounds as loading placeholders
-        const predefinedLoadingCards = this.predefinedBackgrounds.map(bg =>
-            `<div class="background-card loading predefined-bg" data-bg-id="${bg.id}" data-bg-name="${bg.name}">
+        const predefinedLoadingCards = filteredBackgrounds.map(bg =>
+            `<div class="background-card loading predefined-bg" data-bg-id="${bg.id}" data-bg-name="${bg.name}" data-theme="${bg.theme}" data-theme-id="${bg.themeId}">
                 <div class="bg-label">${bg.name}</div>
             </div>`
         ).join('');
@@ -2444,8 +2458,8 @@ const Customize = {
             grid.querySelector('.default-card').addEventListener('click', () => Customize.removeBackground());
             grid.querySelector('.upload-card').addEventListener('click', () => App.dom.customize.backgroundUploadInput.click());
 
-            // Load predefined backgrounds from Google Drive
-            this.predefinedBackgrounds.forEach(async (bg) => {
+            // Load predefined backgrounds from Google Drive (filtered by current theme)
+            filteredBackgrounds.forEach(async (bg) => {
                 const card = grid.querySelector(`[data-bg-id="${bg.id}"].predefined-bg`);
                 if (!card) return;
 
@@ -2480,8 +2494,8 @@ const Customize = {
             grid.querySelector('.default-card').addEventListener('click', () => Customize.removeBackground());
             grid.querySelector('.upload-card').addEventListener('click', () => App.dom.customize.backgroundUploadInput.click());
 
-            // Try to load predefined backgrounds even if user backgrounds failed
-            this.predefinedBackgrounds.forEach(async (bg) => {
+            // Try to load predefined backgrounds even if user backgrounds failed (filtered by current theme)
+            filteredBackgrounds.forEach(async (bg) => {
                 const card = grid.querySelector(`[data-bg-id="${bg.id}"].predefined-bg`);
                 if (!card) return;
 
