@@ -355,16 +355,15 @@
   }
   .popup-user-item .profile-pic { width: 32px; height: 32px; }
 
-  .popup-user-list::-webkit-scrollbar { width: 14px; }
+  .popup-user-list::-webkit-scrollbar { width: 8px; }
   .popup-user-list::-webkit-scrollbar-track { background: transparent; }
   .popup-user-list::-webkit-scrollbar-thumb {
-      background-color: rgba(0,0,0,0.2);
-      border-radius: 20px;
-      border: 4px solid transparent;
-      background-clip: content-box;
+      background: var(--color-text-secondary);
+      border-radius: 99px;
+      opacity: 0.5;
   }
-  body[data-theme="dark"] .popup-user-list::-webkit-scrollbar-thumb {
-      background-color: rgba(255,255,255,0.2);
+  .popup-user-list::-webkit-scrollbar-thumb:hover {
+      background: var(--color-text-primary);
   }
 
   .admin-menu-sidebar { width: 320px; flex-shrink: 0; background: var(--color-sidebar-bg); border-left: 1px solid var(--color-border); display: flex; flex-direction: column; height: 100vh; position: fixed; top: 0; right: 0; z-index: 2000; transform: translateX(100%); transition: transform var(--transition-base); box-shadow: -10px 0 25px -10px rgba(0,0,0,0.1); }
@@ -713,12 +712,20 @@
     justify-content: center;
     transition: all 0.2s;
   }
+  /* Light theme delete button with white background */
+  body[data-theme="light"] .background-card .delete-bg-btn {
+    background: rgba(255, 255, 255, 0.9);
+    color: black;
+  }
   .background-card:hover .delete-bg-btn {
     display: flex;
   }
   .background-card .delete-bg-btn:hover {
     background: rgba(220, 38, 38, 0.9);
     transform: scale(1.1);
+  }
+  body[data-theme="light"] .background-card .delete-bg-btn:hover {
+    color: white;
   }
   .background-card .delete-bg-btn .icon {
     width: 16px;
@@ -926,9 +933,15 @@
   #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 10px; max-width: 320px; }
   .toast-message { padding: 12px 20px; border-radius: var(--radius-md); font-weight: 500; box-shadow: var(--shadow-lg); opacity: 0; transform: translateX(100%); transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
   .toast-message.show { opacity: 1; transform: translateX(0); }
-  .toast-success { background-color: var(--color-brand); color: var(--color-surface); }
+  .toast-success { background-color: var(--color-brand); color: #fff; }
   .toast-error { background-color: var(--color-red); color: #fff; }
-  .toast-info { background-color: var(--color-text-primary); color: var(--color-surface); }
+  .toast-info { background-color: var(--color-text-primary); color: #fff; }
+  /* Light theme toasts with black text, except light default */
+  body[data-theme="light"] .toast-success { color: #000; }
+  body[data-theme="light"] .toast-info { color: #000; }
+  /* Light default theme keeps white text */
+  body[data-theme="light"][data-theme-id="default"] .toast-success { color: #fff; }
+  body[data-theme="light"][data-theme-id="default"] .toast-info { color: #fff; }
 
   .timed-action-row { display: grid; grid-template-columns: 30px 1fr 1fr 30px; gap: 8px; align-items: center; margin-bottom: 8px; }
   .timed-action-row select, .timed-action-row input { height: 36px; padding: 0 8px; }
@@ -2596,19 +2609,37 @@ const Customize = {
         if (bgMetadata && bgMetadata.theme && bgMetadata.themeId) {
             console.log(`Applying predefined background theme: ${bgMetadata.theme} mode, ${bgMetadata.themeId} color`);
 
-            // Switch to the correct theme mode (light/dark) if needed
-            const currentMode = document.body.dataset.theme || 'light';
-            if (currentMode !== bgMetadata.theme) {
-                App.setTheme(bgMetadata.theme);
-            }
+            // On page load (silent=true), respect user's saved theme preference
+            // Only auto-apply predefined theme if user is manually selecting bg (silent=false) OR no saved theme exists
+            const saved = this.getSavedCustomization();
+            const shouldApplyPredefinedTheme = !silent || !saved.selectedTheme;
 
-            // Apply the associated color theme (pass silent to prevent toast on load)
-            this.applyTheme(bgMetadata.themeId, silent);
+            if (shouldApplyPredefinedTheme) {
+                // Switch to the correct theme mode (light/dark) if needed
+                const currentMode = document.body.dataset.theme || 'light';
+                if (currentMode !== bgMetadata.theme) {
+                    App.setTheme(bgMetadata.theme);
+                }
+
+                // Apply the associated color theme (pass silent to prevent toast on load)
+                this.applyTheme(bgMetadata.themeId, silent);
+            } else {
+                console.log('Skipping predefined theme: respecting user saved theme preference');
+            }
         } else {
             // Only use auto-detect for user-uploaded backgrounds
             const urlMatch = bgImage.match(/url\(['"]?([^'"]+)['"]?\)/);
             if (urlMatch && urlMatch[1]) {
-                this.detectImageBrightness(urlMatch[1], silent);
+                // On page load (silent=true), respect user's saved theme preference
+                // Only auto-detect if user is manually selecting bg (silent=false) OR no saved theme exists
+                const saved = this.getSavedCustomization();
+                const shouldAutoDetect = !silent || !saved.selectedTheme;
+
+                if (shouldAutoDetect) {
+                    this.detectImageBrightness(urlMatch[1], silent);
+                } else {
+                    console.log('Skipping auto-detect: respecting user saved theme preference');
+                }
             }
         }
 
