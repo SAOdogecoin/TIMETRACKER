@@ -733,19 +733,33 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
+  }
+  .background-card.upload-card {
     background: var(--color-surface-secondary);
   }
-  .background-card.upload-card .icon,
-  .background-card.default-card .icon {
+  .background-card.default-card {
+    background: var(--color-text-primary);
+  }
+  .background-card.upload-card .icon {
     width: 32px;
     height: 32px;
     color: var(--color-text-secondary);
+  }
+  .background-card.default-card .icon {
+    width: 32px;
+    height: 32px;
+    color: var(--color-surface);
   }
   .background-card.upload-card span,
   .background-card.default-card span {
     font-size: 12px;
     font-weight: 600;
+  }
+  .background-card.upload-card span {
     color: var(--color-text-secondary);
+  }
+  .background-card.default-card span {
+    color: var(--color-surface);
   }
 
   /* Predefined background label */
@@ -2354,7 +2368,7 @@ const Customize = {
         });
     },
 
-    applyTheme(themeId) {
+    applyTheme(themeId, silent = false) {
         const currentMode = document.body.dataset.theme || 'light';
         const theme = this.themes[currentMode].find(t => t.id === themeId);
         if (!theme) return;
@@ -2382,9 +2396,11 @@ const Customize = {
             card.classList.toggle('active', card.dataset.themeId === themeId);
         });
 
-        // Save preference
-        this.saveCustomization({ selectedTheme: themeId, customColors: null });
-        UI.showToast(`${theme.name} theme applied!`, 'success');
+        // Save preference (don't save if silent mode, likely on page load)
+        if (!silent) {
+            this.saveCustomization({ selectedTheme: themeId, customColors: null });
+            UI.showToast(`${theme.name} theme applied!`, 'success');
+        }
     },
 
     adjustOpacity(hexColor, opacity) {
@@ -2925,11 +2941,6 @@ const Customize = {
         const saved = this.getSavedCustomization();
         console.log('Loading saved customization:', saved);
 
-        // Apply saved theme first (only if no background, since background will set theme)
-        if (saved.selectedTheme && !saved.selectedBackground) {
-            this.applyTheme(saved.selectedTheme);
-        }
-
         // Apply saved background by fetching it from cache/Drive using the ID
         if (saved.selectedBackground) {
             console.log('Restoring background ID:', saved.selectedBackground);
@@ -2967,6 +2978,39 @@ const Customize = {
             }, 200);
         } else {
             console.log('No background saved, using default');
+
+            // Apply theme (saved or default) to set background color
+            const themeId = saved.selectedTheme || 'default';
+            const silent = true; // Don't show toast on page load
+
+            // Apply theme with background color
+            const currentMode = document.body.dataset.theme || 'light';
+            const theme = this.themes[currentMode].find(t => t.id === themeId);
+            if (theme) {
+                // Apply all color variables
+                document.body.style.setProperty('--color-text-primary', theme.text);
+                document.body.style.setProperty('--color-text-secondary', this.adjustOpacity(theme.text, 0.7));
+                document.body.style.setProperty('--color-surface-secondary', theme.greyWindow);
+                document.body.style.setProperty('--color-surface', theme.whiteWindow);
+                document.body.style.setProperty('--color-bg', theme.whiteWindow);
+                document.body.style.setProperty('--color-brand', theme.buttons);
+                const borderColor = this.adjustOpacity(theme.text, 0.1);
+                document.body.style.setProperty('--color-border', borderColor);
+
+                // Apply background color (no wallpaper)
+                document.body.style.backgroundColor = theme.text;
+
+                // Update active state
+                App.dom.customize.themeCardsGrid.querySelectorAll('.theme-card').forEach(card => {
+                    card.classList.toggle('active', card.dataset.themeId === themeId);
+                });
+
+                // Save if it's the first time (no saved theme)
+                if (!saved.selectedTheme) {
+                    this.saveCustomization({ selectedTheme: themeId, customColors: null });
+                }
+            }
+
             // Set default card as active if no background is saved
             setTimeout(() => {
                 const defaultCard = App.dom.customize.backgroundGrid.querySelector('.default-card');
