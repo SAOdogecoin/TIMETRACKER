@@ -2225,38 +2225,12 @@ Object.assign(UI, {
 });
 
 const Customize = {
-    // Predefined backgrounds available to all users
+    // Predefined backgrounds from Google Drive - available to all users
+    // Add your Google Drive file IDs and names here
     predefinedBackgrounds: [
-        {
-            id: 'gradient-blue',
-            name: 'Blue Gradient',
-            image: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-        },
-        {
-            id: 'gradient-sunset',
-            name: 'Sunset',
-            image: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)'
-        },
-        {
-            id: 'gradient-ocean',
-            name: 'Ocean',
-            image: 'linear-gradient(135deg, #2ebf91 0%, #8360c3 100%)'
-        },
-        {
-            id: 'gradient-purple',
-            name: 'Purple Dream',
-            image: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)'
-        },
-        {
-            id: 'gradient-fire',
-            name: 'Fire',
-            image: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
-        },
-        {
-            id: 'gradient-forest',
-            name: 'Forest',
-            image: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
-        }
+        // Example: { id: 'YOUR_GDRIVE_FILE_ID_HERE', name: 'Mountain Sunset' },
+        // Example: { id: 'ANOTHER_GDRIVE_FILE_ID', name: 'Ocean Waves' },
+        // Add more backgrounds below:
     ],
 
     themes: {
@@ -2401,20 +2375,19 @@ const Customize = {
         const defaultCard = grid.querySelector('.default-card');
         const uploadCard = grid.querySelector('.upload-card');
 
-        // Render predefined backgrounds
-        const predefinedCards = this.predefinedBackgrounds.map(bg =>
-            `<div class="background-card predefined-bg" data-bg-id="${bg.id}" style="background-image: ${bg.image};">
+        // Render predefined backgrounds as loading placeholders
+        const predefinedLoadingCards = this.predefinedBackgrounds.map(bg =>
+            `<div class="background-card loading predefined-bg" data-bg-id="${bg.id}" data-bg-name="${bg.name}">
                 <div class="bg-label">${bg.name}</div>
             </div>`
         ).join('');
 
         try {
             const result = await API.getBackgroundImages();
-            const userBackgroundsHtml = [];
 
             if (result.success && result.images && result.images.length > 0) {
-                // First render loading placeholders for user backgrounds
-                const loadingCards = result.images.map(img =>
+                // Render loading placeholders for user backgrounds
+                const userLoadingCards = result.images.map(img =>
                     `<div class="background-card loading" data-bg-id="${img.id}" data-user-bg="true">
                         <button class="delete-bg-btn" data-delete-id="${img.id}" onclick="Customize.deleteBackground('${img.id}', event)">
                             <i class="icon" data-icon="trash"></i>
@@ -2423,7 +2396,7 @@ const Customize = {
                 );
 
                 // Render: default + upload + predefined + user backgrounds
-                grid.innerHTML = defaultCard.outerHTML + uploadCard.outerHTML + predefinedCards + loadingCards.join('');
+                grid.innerHTML = defaultCard.outerHTML + uploadCard.outerHTML + predefinedLoadingCards + userLoadingCards.join('');
 
                 // Load user images asynchronously
                 result.images.forEach(async (img) => {
@@ -2450,32 +2423,68 @@ const Customize = {
                 });
             } else {
                 // No user backgrounds, just render default + upload + predefined
-                grid.innerHTML = defaultCard.outerHTML + uploadCard.outerHTML + predefinedCards;
+                grid.innerHTML = defaultCard.outerHTML + uploadCard.outerHTML + predefinedLoadingCards;
             }
 
             // Re-attach default and upload card listeners
             grid.querySelector('.default-card').addEventListener('click', () => Customize.removeBackground());
             grid.querySelector('.upload-card').addEventListener('click', () => App.dom.customize.backgroundUploadInput.click());
 
-            // Add click listeners to predefined backgrounds
-            grid.querySelectorAll('.predefined-bg').forEach(card => {
-                card.addEventListener('click', () => {
-                    this.applyBackground(card.dataset.bgId, card.style.backgroundImage);
-                });
+            // Load predefined backgrounds from Google Drive
+            this.predefinedBackgrounds.forEach(async (bg) => {
+                const card = grid.querySelector(`[data-bg-id="${bg.id}"].predefined-bg`);
+                if (!card) return;
+
+                try {
+                    const dataUrl = await API.getProfilePicDataUrl(bg.id);
+                    if (dataUrl.success) {
+                        card.style.backgroundImage = `url('${dataUrl.dataUrl}')`;
+                        card.classList.remove('loading');
+
+                        // Add click listener
+                        card.addEventListener('click', () => {
+                            this.applyBackground(card.dataset.bgId, card.style.backgroundImage);
+                        });
+                    }
+                } catch (e) {
+                    console.error(`Failed to load predefined background '${bg.name}':`, e);
+                    card.classList.remove('loading');
+                    // Show error in label
+                    const label = card.querySelector('.bg-label');
+                    if (label) {
+                        label.textContent = `${bg.name} (Failed to load)`;
+                        label.style.opacity = '1';
+                    }
+                }
             });
 
         } catch (error) {
             console.error('Error loading backgrounds:', error);
             // On error, still show predefined backgrounds
-            grid.innerHTML = defaultCard.outerHTML + uploadCard.outerHTML + predefinedCards;
+            grid.innerHTML = defaultCard.outerHTML + uploadCard.outerHTML + predefinedLoadingCards;
 
             grid.querySelector('.default-card').addEventListener('click', () => Customize.removeBackground());
             grid.querySelector('.upload-card').addEventListener('click', () => App.dom.customize.backgroundUploadInput.click());
 
-            grid.querySelectorAll('.predefined-bg').forEach(card => {
-                card.addEventListener('click', () => {
-                    this.applyBackground(card.dataset.bgId, card.style.backgroundImage);
-                });
+            // Try to load predefined backgrounds even if user backgrounds failed
+            this.predefinedBackgrounds.forEach(async (bg) => {
+                const card = grid.querySelector(`[data-bg-id="${bg.id}"].predefined-bg`);
+                if (!card) return;
+
+                try {
+                    const dataUrl = await API.getProfilePicDataUrl(bg.id);
+                    if (dataUrl.success) {
+                        card.style.backgroundImage = `url('${dataUrl.dataUrl}')`;
+                        card.classList.remove('loading');
+
+                        card.addEventListener('click', () => {
+                            this.applyBackground(card.dataset.bgId, card.style.backgroundImage);
+                        });
+                    }
+                } catch (e) {
+                    console.error(`Failed to load predefined background '${bg.name}':`, e);
+                    card.classList.remove('loading');
+                }
             });
         }
     },
@@ -2514,20 +2523,10 @@ const Customize = {
         document.body.style.backgroundImage = bgImage;
         document.body.classList.add('has-custom-bg');
 
-        // Check if it's a gradient (predefined) or image URL
-        const isGradient = bgImage.includes('linear-gradient') || bgImage.includes('radial-gradient');
-
-        if (isGradient) {
-            // For gradients, apply dark mode automatically for better contrast
-            App.setTheme('dark');
-            this.applyTheme('default');
-            document.body.classList.add('dark-bg');
-        } else {
-            // Extract image URL from bgImage string for brightness detection
-            const urlMatch = bgImage.match(/url\(['"]?([^'"]+)['"]?\)/);
-            if (urlMatch && urlMatch[1]) {
-                this.detectImageBrightness(urlMatch[1]);
-            }
+        // Extract image URL from bgImage string for brightness detection
+        const urlMatch = bgImage.match(/url\(['"]?([^'"]+)['"]?\)/);
+        if (urlMatch && urlMatch[1]) {
+            this.detectImageBrightness(urlMatch[1]);
         }
 
         // Update active state
@@ -2858,20 +2857,10 @@ const Customize = {
             document.body.style.backgroundImage = saved.backgroundImage;
             document.body.classList.add('has-custom-bg');
 
-            // Check if it's a gradient or image
-            const isGradient = saved.backgroundImage.includes('linear-gradient') || saved.backgroundImage.includes('radial-gradient');
-
-            if (isGradient) {
-                // For gradients, apply dark mode automatically
-                App.setTheme('dark');
-                this.applyTheme('default');
-                document.body.classList.add('dark-bg');
-            } else {
-                // Extract image URL for brightness detection
-                const urlMatch = saved.backgroundImage.match(/url\(['"]?([^'"]+)['"]?\)/);
-                if (urlMatch && urlMatch[1]) {
-                    this.detectImageBrightness(urlMatch[1]);
-                }
+            // Extract image URL for brightness detection
+            const urlMatch = saved.backgroundImage.match(/url\(['"]?([^'"]+)['"]?\)/);
+            if (urlMatch && urlMatch[1]) {
+                this.detectImageBrightness(urlMatch[1]);
             }
 
             // Set active state on the correct background card after grid loads
