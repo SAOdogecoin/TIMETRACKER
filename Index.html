@@ -52,32 +52,37 @@
   }
 
   /* Background image text adjustments - for dashboard header AND topbar elements over background */
-  /* Dark background: white text */
+  /* Dashboard text: prefer white for maximum readability with subtle shadow */
+  body.has-custom-bg .greeting-title,
+  body.has-custom-bg .current-date,
+  body.has-custom-bg .main-time-counter,
+  body.has-custom-bg .current-status-text {
+      color: #FFFFFF !important;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+  body.has-custom-bg .current-date {
+      color: #F0F0F0 !important;
+  }
+
+  /* Dark center region: white text for dashboard (already white above) */
   body.has-custom-bg.dark-bg .greeting-title,
   body.has-custom-bg.dark-bg .current-date,
   body.has-custom-bg.dark-bg .main-time-counter,
-  body.has-custom-bg.dark-bg .current-status-text,
+  body.has-custom-bg.dark-bg .current-status-text {
+      color: #F4F4F5 !important;
+  }
+
+  /* Topbar elements: adjust based on overall background brightness */
   body.has-custom-bg.dark-bg .admin-panel-trigger,
   body.has-custom-bg.dark-bg .admin-panel-trigger span,
   body.has-custom-bg.dark-bg #customize-trigger {
       color: #F4F4F5 !important;
   }
-  body.has-custom-bg.dark-bg .current-date {
-      color: #E4E4E7 !important;
-  }
 
-  /* Light background: dark text */
-  body.has-custom-bg:not(.dark-bg) .greeting-title,
-  body.has-custom-bg:not(.dark-bg) .current-date,
-  body.has-custom-bg:not(.dark-bg) .main-time-counter,
-  body.has-custom-bg:not(.dark-bg) .current-status-text,
   body.has-custom-bg:not(.dark-bg) .admin-panel-trigger,
   body.has-custom-bg:not(.dark-bg) .admin-panel-trigger span,
   body.has-custom-bg:not(.dark-bg) #customize-trigger {
       color: #18181B !important;
-  }
-  body.has-custom-bg:not(.dark-bg) .current-date {
-      color: #52525B !important;
   }
 
   /* Disable status tag color coding when background is present */
@@ -2451,21 +2456,56 @@ const Customize = {
                     }
                 }
 
-                // Calculate overall brightness
+                // Calculate overall brightness for theme selection
                 const brightness = colorSum / (data.length / 4);
                 const isDark = brightness < 128;
 
-                // Store background brightness info
-                document.body.dataset.bgBrightness = isDark ? 'dark' : 'light';
+                // Sample the CENTER region where dashboard sits for localized brightness
+                // Dashboard is typically in center-left to center area
+                const centerX = Math.floor(canvas.width * 0.3);  // Start at 30% from left
+                const centerY = Math.floor(canvas.height * 0.3); // Start at 30% from top
+                const regionWidth = Math.floor(canvas.width * 0.4);  // Sample 40% width
+                const regionHeight = Math.floor(canvas.height * 0.5); // Sample 50% height
 
-                // Adjust text colors based on background brightness
-                if (isDark) {
+                const centerRegion = ctx.getImageData(centerX, centerY, regionWidth, regionHeight);
+                const centerData = centerRegion.data;
+                let centerColorSum = 0;
+                let centerPixelCount = 0;
+
+                for (let i = 0; i < centerData.length; i += 4) {
+                    const a = centerData[i + 3];
+                    if (a < 128) continue; // Skip transparent
+
+                    const r = centerData[i];
+                    const g = centerData[i + 1];
+                    const b = centerData[i + 2];
+                    centerColorSum += (r + g + b) / 3;
+                    centerPixelCount++;
+                }
+
+                const centerBrightness = centerColorSum / centerPixelCount;
+                const centerIsDark = centerBrightness < 140; // Slightly higher threshold for center
+
+                // Store both overall and center brightness info
+                document.body.dataset.bgBrightness = isDark ? 'dark' : 'light';
+                document.body.dataset.bgCenterBrightness = centerIsDark ? 'dark' : 'light';
+
+                // Adjust dashboard text colors based on CENTER region brightness
+                // This ensures dashboard is readable regardless of edges
+                if (centerIsDark) {
                     document.body.classList.add('dark-bg');
                 } else {
                     document.body.classList.remove('dark-bg');
                 }
 
-                // Determine dominant color and auto-select theme
+                console.log('Brightness analysis:', {
+                    overall: brightness.toFixed(1),
+                    center: centerBrightness.toFixed(1),
+                    overallDark: isDark,
+                    centerDark: centerIsDark
+                });
+
+                // Determine dominant color and auto-select theme based on OVERALL brightness
                 this.autoSelectThemeByColor(colorBuckets, totalSaturatedPixels, isDark);
 
             } catch (e) {
