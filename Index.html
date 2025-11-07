@@ -2602,13 +2602,13 @@ const Customize = {
                 App.setTheme(bgMetadata.theme);
             }
 
-            // Apply the associated color theme
-            this.applyTheme(bgMetadata.themeId);
+            // Apply the associated color theme (pass silent to prevent toast on load)
+            this.applyTheme(bgMetadata.themeId, silent);
         } else {
             // Only use auto-detect for user-uploaded backgrounds
             const urlMatch = bgImage.match(/url\(['"]?([^'"]+)['"]?\)/);
             if (urlMatch && urlMatch[1]) {
-                this.detectImageBrightness(urlMatch[1]);
+                this.detectImageBrightness(urlMatch[1], silent);
             }
         }
 
@@ -2657,7 +2657,7 @@ const Customize = {
         UI.showToast('Background removed!', 'success');
     },
 
-    detectImageBrightness(imageUrl) {
+    detectImageBrightness(imageUrl, silent = false) {
         const img = new Image();
         img.crossOrigin = 'Anonymous';
         img.onload = () => {
@@ -2770,7 +2770,7 @@ const Customize = {
                 });
 
                 // Determine dominant color and auto-select theme based on OVERALL brightness
-                this.autoSelectThemeByColor(colorBuckets, totalSaturatedPixels, isDark);
+                this.autoSelectThemeByColor(colorBuckets, totalSaturatedPixels, isDark, silent);
 
             } catch (e) {
                 console.log('Could not analyze image:', e);
@@ -2811,7 +2811,7 @@ const Customize = {
         };
     },
 
-    autoSelectThemeByColor(colorBuckets, totalSaturatedPixels, isDark) {
+    autoSelectThemeByColor(colorBuckets, totalSaturatedPixels, isDark, silent = false) {
         // If less than 10% of pixels are saturated, image is mostly grayscale
         // Use default theme
         const pixelCount = totalSaturatedPixels;
@@ -2819,8 +2819,8 @@ const Customize = {
             console.log('Image is mostly grayscale, using default theme');
             // First switch to appropriate mode based on brightness
             App.setTheme(isDark ? 'dark' : 'light');
-            // Then apply default color theme
-            this.applyTheme('default');
+            // Then apply default color theme (pass silent to prevent toast on load)
+            this.applyTheme('default', silent);
             return;
         }
 
@@ -2855,12 +2855,14 @@ const Customize = {
         App.setTheme(isDark ? 'dark' : 'light');
 
         // Then apply the color theme (will use dark/light variant based on mode)
-        this.applyTheme(dominantColor);
+        this.applyTheme(dominantColor, silent);
 
-        // Show toast with both mode and color
-        const modeName = isDark ? 'Dark' : 'Light';
-        const colorName = dominantColor.charAt(0).toUpperCase() + dominantColor.slice(1);
-        UI.showToast(`${colorName} ${modeName} theme auto-selected!`, 'success');
+        // Show toast with both mode and color (only if not silent)
+        if (!silent) {
+            const modeName = isDark ? 'Dark' : 'Light';
+            const colorName = dominantColor.charAt(0).toUpperCase() + dominantColor.slice(1);
+            UI.showToast(`${colorName} ${modeName} theme auto-selected!`, 'success');
+        }
     },
 
     /**
