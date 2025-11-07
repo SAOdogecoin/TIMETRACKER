@@ -454,7 +454,7 @@
     transition: all 0.2s;
     position: relative;
     overflow: hidden;
-    padding: 16px;
+    padding: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -486,13 +486,14 @@
   }
 
   .theme-split-circle {
-    width: 60px;
-    height: 60px;
+    width: 64px;
+    height: 64px;
     border-radius: 50%;
     overflow: hidden;
     display: flex;
     flex-direction: column;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    flex-shrink: 0;
   }
 
   .circle-top {
@@ -514,44 +515,6 @@
   .circle-bottom-right {
     width: 50%;
     height: 100%;
-  }
-
-  /* Color Pickers */
-  .color-picker-group {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .color-picker-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  .color-picker-item label {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--color-text-primary);
-  }
-  .color-picker-input {
-    width: 48px;
-    height: 48px;
-    border-radius: var(--radius-md);
-    border: 2px solid var(--color-border);
-    cursor: pointer;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    background: none;
-    padding: 4px;
-  }
-  .color-picker-input::-webkit-color-swatch {
-    border-radius: 6px;
-    border: none;
-  }
-  .color-picker-input::-moz-color-swatch {
-    border-radius: 6px;
-    border: none;
   }
 
   /* Background Section */
@@ -946,26 +909,6 @@
                 <!-- Theme cards will be populated here -->
             </div>
         </div>
-
-        <!-- Custom Colors Section -->
-        <div class="customize-section">
-            <h4 class="customize-section-title">Custom Colors</h4>
-            <div class="color-picker-group">
-                <div class="color-picker-item">
-                    <label for="color-brand">Accent Color</label>
-                    <input type="color" id="color-brand" class="color-picker-input" value="#0071dc">
-                </div>
-                <div class="color-picker-item">
-                    <label for="color-surface">Surface Color</label>
-                    <input type="color" id="color-surface" class="color-picker-input" value="#FFFFFF">
-                </div>
-                <div class="color-picker-item">
-                    <label for="color-text-primary">Text Color</label>
-                    <input type="color" id="color-text-primary" class="color-picker-input" value="#18181B">
-                </div>
-            </div>
-            <button id="reset-colors-btn" class="reset-btn">Reset to Default</button>
-        </div>
     </div>
 </aside>
 
@@ -1256,10 +1199,6 @@ const App = {
                 sidebar: document.getElementById('customize-sidebar'),
                 closeBtn: document.getElementById('close-customize-btn'),
                 themeCardsGrid: document.getElementById('theme-cards-grid'),
-                colorBrand: document.getElementById('color-brand'),
-                colorSurface: document.getElementById('color-surface'),
-                colorTextPrimary: document.getElementById('color-text-primary'),
-                resetColorsBtn: document.getElementById('reset-colors-btn'),
                 backgroundGrid: document.getElementById('background-grid'),
                 uploadBackgroundCard: document.getElementById('upload-background-card'),
                 backgroundUploadInput: document.getElementById('background-upload-input'),
@@ -1288,12 +1227,6 @@ const App = {
         // Light/Dark mode buttons
         document.getElementById('light-mode-btn').addEventListener('click', () => this.setTheme('light'));
         document.getElementById('dark-mode-btn').addEventListener('click', () => this.setTheme('dark'));
-
-        // Color pickers
-        this.dom.customize.colorBrand.addEventListener('input', (e) => Customize.applyCustomColor('--color-brand', e.target.value));
-        this.dom.customize.colorSurface.addEventListener('input', (e) => Customize.applyCustomColor('--color-surface', e.target.value));
-        this.dom.customize.colorTextPrimary.addEventListener('input', (e) => Customize.applyCustomColor('--color-text-primary', e.target.value));
-        this.dom.customize.resetColorsBtn.addEventListener('click', () => Customize.resetColors());
 
         // Background upload and reset
         this.dom.customize.uploadBackgroundCard.addEventListener('click', () => this.dom.customize.backgroundUploadInput.click());
@@ -2252,41 +2185,6 @@ const Customize = {
         return `rgba(${r}, ${g}, ${b}, ${opacity})`;
     },
 
-    applyCustomColor(cssVar, value) {
-        document.documentElement.style.setProperty(cssVar, value);
-
-        // Get current customization and update colors
-        const saved = this.getSavedCustomization();
-        const customColors = saved.customColors || {};
-        const colorKey = cssVar.replace('--color-', '');
-        customColors[colorKey] = value;
-
-        this.saveCustomization({ ...saved, customColors, selectedTheme: null });
-    },
-
-    resetColors() {
-        // Reset to default theme colors
-        const defaultColors = {
-            '--color-brand': '#0071dc',
-            '--color-surface': '#FFFFFF',
-            '--color-text-primary': '#18181B'
-        };
-
-        Object.entries(defaultColors).forEach(([cssVar, value]) => {
-            document.documentElement.style.setProperty(cssVar, value);
-            const input = App.dom.customize[`color${cssVar.replace('--color-', '').charAt(0).toUpperCase() + cssVar.replace('--color-', '').slice(1).replace(/-([a-z])/g, (m, c) => c.toUpperCase())}`];
-            if (input) input.value = value;
-        });
-
-        // Remove active theme
-        App.dom.customize.themeCardsGrid.querySelectorAll('.theme-card').forEach(card => {
-            card.classList.remove('active');
-        });
-
-        this.saveCustomization({ selectedTheme: null, customColors: null });
-        UI.showToast('Colors reset to default!', 'success');
-    },
-
     async loadBackgrounds() {
         const grid = App.dom.customize.backgroundGrid;
         const uploadCard = grid.querySelector('.upload-card');
@@ -2425,15 +2323,13 @@ const Customize = {
                 const brightness = colorSum / (data.length / 4);
                 const isDark = brightness < 128;
 
-                // Apply text colors based on background brightness
+                // Auto-switch light/dark mode based on background brightness
                 if (isDark) {
                     document.body.classList.add('dark-bg');
-                    document.documentElement.style.setProperty('--color-text-primary', '#F4F4F5');
-                    document.documentElement.style.setProperty('--color-text-secondary', '#E4E4E7');
+                    App.setTheme('dark');
                 } else {
                     document.body.classList.remove('dark-bg');
-                    document.documentElement.style.setProperty('--color-text-primary', '#18181B');
-                    document.documentElement.style.setProperty('--color-text-secondary', '#52525B');
+                    App.setTheme('light');
                 }
             } catch (e) {
                 console.log('Could not analyze image brightness:', e);
@@ -2502,19 +2398,6 @@ const Customize = {
         // Apply saved theme
         if (saved.selectedTheme) {
             this.applyTheme(saved.selectedTheme);
-        }
-
-        // Apply saved custom colors
-        if (saved.customColors) {
-            Object.entries(saved.customColors).forEach(([key, value]) => {
-                const cssVar = `--color-${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
-                document.documentElement.style.setProperty(cssVar, value);
-
-                const inputKey = `color${key.charAt(0).toUpperCase() + key.slice(1)}`;
-                if (App.dom.customize[inputKey]) {
-                    App.dom.customize[inputKey].value = value;
-                }
-            });
         }
 
         // Apply saved background with image data
