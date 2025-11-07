@@ -51,27 +51,47 @@
       --color-sidebar-bg: #18181B;
   }
 
-  /* Background image text adjustments - ONLY for dashboard header elements over background */
+  /* Background image text adjustments - for dashboard header AND topbar elements over background */
   /* Dark background: white text */
   body.has-custom-bg.dark-bg .greeting-title,
   body.has-custom-bg.dark-bg .current-date,
   body.has-custom-bg.dark-bg .main-time-counter,
-  body.has-custom-bg.dark-bg .current-status-text {
+  body.has-custom-bg.dark-bg .current-status-text,
+  body.has-custom-bg.dark-bg .admin-panel-trigger,
+  body.has-custom-bg.dark-bg .admin-panel-trigger span,
+  body.has-custom-bg.dark-bg #customize-trigger {
       color: #F4F4F5 !important;
   }
   body.has-custom-bg.dark-bg .current-date {
       color: #E4E4E7 !important;
   }
 
-  /* Light background: dark text (only when NOT using dark theme which already has light text) */
+  /* Light background: dark text */
   body.has-custom-bg:not(.dark-bg) .greeting-title,
   body.has-custom-bg:not(.dark-bg) .current-date,
   body.has-custom-bg:not(.dark-bg) .main-time-counter,
-  body.has-custom-bg:not(.dark-bg) .current-status-text {
+  body.has-custom-bg:not(.dark-bg) .current-status-text,
+  body.has-custom-bg:not(.dark-bg) .admin-panel-trigger,
+  body.has-custom-bg:not(.dark-bg) .admin-panel-trigger span,
+  body.has-custom-bg:not(.dark-bg) #customize-trigger {
       color: #18181B !important;
   }
   body.has-custom-bg:not(.dark-bg) .current-date {
       color: #52525B !important;
+  }
+
+  /* Add subtle shadows when background is present for better visibility */
+  body.has-custom-bg .greeting-title,
+  body.has-custom-bg .current-date,
+  body.has-custom-bg .main-time-counter,
+  body.has-custom-bg .current-status-text {
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+  }
+  body.has-custom-bg .admin-panel-trigger,
+  body.has-custom-bg .admin-panel-trigger span,
+  body.has-custom-bg #customize-trigger .icon {
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+      filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.2));
   }
 
   /* Base & Layout */
