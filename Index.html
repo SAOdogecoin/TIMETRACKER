@@ -2489,10 +2489,13 @@ const Customize = {
             grid.querySelector('.default-card').addEventListener('click', () => Customize.removeBackground());
             grid.querySelector('.upload-card').addEventListener('click', () => App.dom.customize.backgroundUploadInput.click());
 
-            // Load predefined backgrounds from Google Drive
-            this.predefinedBackgrounds.forEach(async (bg) => {
+            // Load predefined backgrounds from Google Drive with delay to avoid 429 errors
+            this.predefinedBackgrounds.forEach(async (bg, index) => {
                 const card = grid.querySelector(`[data-bg-id="${bg.id}"].predefined-bg`);
                 if (!card) return;
+
+                // Add 300ms delay between each request to avoid rate limiting
+                await new Promise(resolve => setTimeout(resolve, index * 300));
 
                 try {
                     const dataUrl = await API.getProfilePicDataUrl(bg.id);
@@ -2525,10 +2528,13 @@ const Customize = {
             grid.querySelector('.default-card').addEventListener('click', () => Customize.removeBackground());
             grid.querySelector('.upload-card').addEventListener('click', () => App.dom.customize.backgroundUploadInput.click());
 
-            // Try to load predefined backgrounds even if user backgrounds failed
-            this.predefinedBackgrounds.forEach(async (bg) => {
+            // Try to load predefined backgrounds even if user backgrounds failed (with delay)
+            this.predefinedBackgrounds.forEach(async (bg, index) => {
                 const card = grid.querySelector(`[data-bg-id="${bg.id}"].predefined-bg`);
                 if (!card) return;
+
+                // Add 300ms delay between each request to avoid rate limiting
+                await new Promise(resolve => setTimeout(resolve, index * 300));
 
                 try {
                     const dataUrl = await API.getProfilePicDataUrl(bg.id);
@@ -3070,19 +3076,40 @@ const CacheManager = {
 
     setCachedImage(fileId, dataUrl) {
         try {
+            // Don't cache predefined backgrounds (large wallpaper images)
+            // Only cache user-uploaded backgrounds and profile pictures
+            const predefinedIds = [
+                '15AMwSKbnhKGJTBwJOkSQ5kPv_yjoUrKS', // Desk Aesthetic
+                '16CMHSSqKCzMO-3H5Tcv-gkYBNLvyFZIa', // Eyewear Fashion
+                '1VPvaVtlZg3XBN8aHjqCD7LeKcCmNDJlI', // Fresh Prep
+                '1sF2OKXnBJ0dD3XSMlry2QEiVWTDqH-a1', // Minimal Workspace
+                '1yDt4S0ym3cisFzlOhKFe2A8-4xlleHPW', // Stormy Peaks
+                '1ZVCPPhUwtwGZVeinTMYrzXo5ni0BHB5c', // Starry Night
+                '1s_b0p1Tb5qswk2mhe9RuP4HTHQgxeYKL', // Ocean Keeper
+                '1ix8-hhwlQM-sa8-yHnXCM8hhM_g4fWNW'  // Blushing Blooms
+            ];
+
+            if (predefinedIds.includes(fileId)) {
+                console.log('Skipping cache for predefined background:', fileId);
+                return; // Don't cache predefined wallpapers
+            }
+
             const expiryTime = Date.now() + this.maxAge;
             localStorage.setItem(this.prefix + fileId, dataUrl);
             localStorage.setItem(this.expiryPrefix + fileId, expiryTime.toString());
         } catch (e) {
             console.error('Error setting cache:', e);
-            // If quota exceeded, clear old cache and retry
+            // If quota exceeded, clear old cache and try one more time
             if (e.name === 'QuotaExceededError') {
+                console.log('Quota exceeded, clearing old cache...');
                 this.clearOldCache();
                 try {
                     localStorage.setItem(this.prefix + fileId, dataUrl);
                     localStorage.setItem(this.expiryPrefix + fileId, (Date.now() + this.maxAge).toString());
+                    console.log('Successfully cached after clearing old entries');
                 } catch (e2) {
-                    console.error('Still failed after clearing cache:', e2);
+                    console.warn('Still failed after clearing cache - skipping cache for this image:', e2);
+                    // Fail silently - image will just load from Drive next time
                 }
             }
         }
