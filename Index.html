@@ -781,67 +781,73 @@
   }
   /* ===== END: CUSTOMIZATION PANEL CSS ===== */
 
-  /* ===== START: ANNOUNCEMENT BANNER CSS ===== */
-  #announcement-banner {
-      background-color: #e0f2fe; /* Light blue background */
-      color: #0c4a6e; /* Dark blue text */
-      padding: 12px 24px;
+  /* ===== START: ANNOUNCEMENT PILL CSS ===== */
+  .announcement-pill {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      font-size: 14px;
+      gap: 10px;
+      background: var(--color-surface-secondary);
+      border: 1px solid var(--color-border);
+      border-radius: 20px;
+      padding: 6px 12px 6px 14px;
+      font-size: 13px;
       font-weight: 500;
-      border-bottom: 1px solid #bae6fd;
-      flex-shrink: 0;
-      position: relative;
-      z-index: 10;
+      color: var(--color-text-primary);
+      margin-right: 8px;
+      max-width: 320px;
+      transition: all 0.2s;
   }
-  body[data-theme="dark"] #announcement-banner {
-      background-color: #1e293b; /* Darker blue for dark mode */
-      color: #e2e8f0;
-      border-bottom: 1px solid #334155;
+
+  .announcement-pill:hover {
+      background: var(--color-bg-hover);
   }
-  .announcement-content {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      flex-grow: 1;
-      justify-content: center;
-      min-width: 0;
-  }
+
   #announcement-text {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      flex: 1;
+      min-width: 0;
   }
+
   #announcement-gmeet-btn {
       background-color: var(--color-brand);
       color: #fff;
-      padding: 6px 14px;
-      border-radius: var(--radius-md);
+      padding: 4px 10px;
+      border-radius: 12px;
       text-decoration: none;
       font-weight: 600;
-      font-size: 13px;
+      font-size: 12px;
       transition: background-color 0.2s;
       flex-shrink: 0;
   }
+
   #announcement-gmeet-btn:hover {
       background-color: #005bb5;
   }
+
   #announcement-close-btn {
       background: none;
       border: none;
-      font-size: 24px;
-      color: inherit;
-      opacity: 0.6;
+      font-size: 18px;
+      color: var(--color-text-secondary);
+      opacity: 0.7;
       cursor: pointer;
       line-height: 1;
-      padding: 0 8px;
+      padding: 0;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: opacity 0.2s;
   }
+
   #announcement-close-btn:hover {
       opacity: 1;
   }
-  /* ===== END: ANNOUNCEMENT BANNER CSS ===== */
+  /* ===== END: ANNOUNCEMENT PILL CSS ===== */
   
   .form-group { display: flex; flex-direction: column; }
   .form-group label { font-size: 12px; font-weight: 500; color: var(--color-text-secondary); margin-bottom: 4px; }
@@ -973,22 +979,20 @@
 <div id="loading-indicator"><div class="loading-spinner"></div></div>
 
 <div class="app-layout">
-    <!-- ===== START: ANNOUNCEMENT BANNER HTML ===== -->
-    <div id="announcement-banner" style="display: none;">
-        <div class="announcement-content">
-            <span id="announcement-text"></span>
-            <a id="announcement-gmeet-btn" href="#" target="_blank" rel="noopener noreferrer">Join Meeting</a>
-        </div>
-        <button id="announcement-close-btn" aria-label="Dismiss announcement">&times;</button>
-    </div>
-    <!-- ===== END: ANNOUNCEMENT BANNER HTML ===== -->
-
     <header class="top-bar">
         <button id="admin-panel-btn" class="admin-panel-trigger is-admin" style="display: none;" aria-label="Open Admin Panel">
             <i class="icon" data-icon="shield"></i>
             <span>Admin panel</span>
         </button>
         <div class="top-bar-right">
+            <!-- ===== START: ANNOUNCEMENT BANNER (PILL) ===== -->
+            <div id="announcement-banner" class="announcement-pill" style="display: none;">
+                <span id="announcement-text"></span>
+                <a id="announcement-gmeet-btn" href="#" target="_blank" rel="noopener noreferrer">Join</a>
+                <button id="announcement-close-btn" aria-label="Dismiss announcement">&times;</button>
+            </div>
+            <!-- ===== END: ANNOUNCEMENT BANNER (PILL) ===== -->
+
             <button id="customize-trigger" class="top-bar-btn" aria-label="Customize appearance">
                 <i class="icon" data-icon="palette"></i>
             </button>
