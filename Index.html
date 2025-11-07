@@ -95,17 +95,17 @@
   /* Base & Layout */
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html { font-family: var(--font-primary); -webkit-font-smoothing: antialiased; }
-  body { 
-      background-color: var(--color-bg); 
+  body {
+      background-color: var(--color-bg);
       background-image: var(--background-image);
       background-size: cover;
       background-position: center;
       background-attachment: fixed;
-      color: var(--color-text-primary); 
-      font-size: 14px; 
-      overflow: hidden; 
-      height: 100vh; 
-      transition: background-image 0.5s, background-color 0.3s, color 0.3s; 
+      color: var(--color-text-primary);
+      font-size: 12.6px; /* 90% of 14px */
+      overflow: hidden;
+      height: 100vh;
+      transition: background-image 0.5s, background-color 0.3s, color 0.3s;
       display: flex;
       justify-content: center;
   }
@@ -118,7 +118,15 @@
   .loading-spinner { width: 32px; height: 32px; border: 3px solid var(--color-border); border-top-color: var(--color-brand); border-radius: 50%; animation: spin 0.7s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  .app-layout { display: flex; flex-direction: column; height: 100vh; position: relative; width: 100%; }
+  .app-layout {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    position: relative;
+    width: 100%;
+    transform: scale(0.9);
+    transform-origin: center center;
+  }
   .dashboard-content { flex: 1; overflow-y: auto; padding: 24px 48px; position: relative; }
   .main-content-wrapper { width: 100%; max-width: 600px; margin: 0 auto; }
 
@@ -2359,7 +2367,7 @@ const Customize = {
         }
     },
 
-    applyBackground(bgId, bgImage) {
+    applyBackground(bgId, bgImage, silent = false) {
         document.body.style.backgroundImage = bgImage;
         document.body.classList.add('has-custom-bg');
 
@@ -2375,7 +2383,11 @@ const Customize = {
         });
 
         this.saveCustomization({ ...this.getSavedCustomization(), selectedBackground: bgId, backgroundImage: bgImage });
-        UI.showToast('Background applied!', 'success');
+
+        // Only show toast if not silent (not on initial load)
+        if (!silent) {
+            UI.showToast('Background applied!', 'success');
+        }
     },
 
     removeBackground() {
@@ -2684,10 +2696,10 @@ const Customize = {
             this.applyTheme(saved.selectedTheme);
         }
 
-        // Apply saved background with image data
+        // Apply saved background with image data (silent = true to suppress toast on page load)
         if (saved.selectedBackground && saved.backgroundImage) {
             setTimeout(() => {
-                this.applyBackground(saved.selectedBackground, saved.backgroundImage);
+                this.applyBackground(saved.selectedBackground, saved.backgroundImage, true);
             }, 500);
         }
     }
