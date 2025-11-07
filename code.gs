@@ -641,7 +641,30 @@ function saveUserPreference(userName, key, value) {
   }
 }
 function getSpreadsheetUrl() { try { return SpreadsheetApp.getActiveSpreadsheet().getUrl(); } catch (e) { return "#"; } }
-function getProfilePicDataUrlForFileId(fileId) { if (!fileId) return { success: false }; try { const blob = DriveApp.getFileById(fileId).getBlob(); return { success: true, dataUrl: `data:${blob.getContentType()};base64,${Utilities.base64Encode(blob.getBytes())}` }; } catch (e) { return { success: false }; } }
+function getProfilePicDataUrlForFileId(fileId) {
+  if (!fileId) return { success: false };
+
+  try {
+    const file = DriveApp.getFileById(fileId);
+    const fileName = file.getName();
+    const userEmail = Session.getActiveUser().getEmail();
+    const sanitizedEmail = userEmail.replace(/[@.]/g, '_');
+
+    // Security check: Only allow users to view their own backgrounds
+    // (or allow admins to view any)
+    if (!fileName.startsWith(`bg_custom_${sanitizedEmail}_`) && !isAdmin_()) {
+      return { success: false, error: 'Permission denied. You can only view your own backgrounds.' };
+    }
+
+    const blob = file.getBlob();
+    return {
+      success: true,
+      dataUrl: `data:${blob.getContentType()};base64,${Utilities.base64Encode(blob.getBytes())}`
+    };
+  } catch (e) {
+    return { success: false };
+  }
+}
 function getOrCreateTargetSheet_() { const ss = SpreadsheetApp.getActiveSpreadsheet(); const date = new Date(); date.setHours(0, 0, 0, 0); const dayNum = date.getDay() || 7; date.setDate(date.getDate() + 4 - dayNum); const yearStart = new Date(date.getFullYear(), 0, 1); const weekNo = Math.ceil((((date - yearStart) / 86400000) + 1) / 7); const targetSheetName = `Week${weekNo}`; let sheet = ss.getSheetByName(targetSheetName); if (!sheet) { const templateSheet = ss.getSheetByName(TEMPLATE_SHEET_NAME); if (!templateSheet) return null; sheet = ss.insertSheet(targetSheetName, ss.getNumSheets(), { template: templateSheet }); } return sheet; }
 function findNameDataForDate_(sheet, targetDate) { if (!sheet || !(targetDate instanceof Date)) return null; const targetMillis = Date.UTC(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate()); try { const dateRanges = sheet.getRangeList(DATE_NAME_MAPPING.map(m => `A${m.dateRow}`)).getRanges(); const dateValues = dateRanges.map(r => r.getValue()); const mapIndex = dateValues.findIndex(val => val instanceof Date && Date.UTC(val.getFullYear(), val.getMonth(), val.getDate()) === targetMillis); if (mapIndex === -1) return []; const { nameStartRow, nameEndRow } = DATE_NAME_MAPPING[mapIndex]; const nameVals = sheet.getRange(nameStartRow, 1, nameEndRow - nameStartRow + 1, 1).getValues(); return nameVals.map((r, i) => ({ name: r[0].trim(), row: nameStartRow + i })).filter(item => item.name); } catch (e) { return null; } }
 function findUserByChatId_(chatId) { const allUsersResult = getAllUsersStatus(); if (allUsersResult.success) { for (const user of allUsersResult.users) { const userPrefs = getUserPreferences_(user.name); if (String(userPrefs.telegramChatId).trim() === String(chatId).trim()) { return user; } } } return null; }
