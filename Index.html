@@ -1279,8 +1279,8 @@ const App = {
         API.getSpreadsheetUrl().then(url => UI.setGSheetLink(url));
         this.loadTeamDataInBackground();
 
-        // Initialize customization panel
-        Customize.init();
+        // Initialize customization panel and wait for background to load
+        await Customize.init();
     },
     cacheDOMElements() {
         this.dom = {
@@ -2308,10 +2308,10 @@ const Customize = {
         ]
     },
 
-    init() {
+    async init() {
         this.renderThemeCards();
         this.loadBackgrounds();
-        this.loadSavedCustomization();
+        await this.loadSavedCustomization();
     },
 
     renderThemeCards() {
