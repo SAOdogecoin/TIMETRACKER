@@ -723,7 +723,8 @@
     height: 16px;
   }
 
-  .background-card.upload-card {
+  .background-card.upload-card,
+  .background-card.default-card {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -731,12 +732,14 @@
     gap: 8px;
     background: var(--color-surface-secondary);
   }
-  .background-card.upload-card .icon {
+  .background-card.upload-card .icon,
+  .background-card.default-card .icon {
     width: 32px;
     height: 32px;
     color: var(--color-text-secondary);
   }
-  .background-card.upload-card span {
+  .background-card.upload-card span,
+  .background-card.default-card span {
     font-size: 12px;
     font-weight: 600;
     color: var(--color-text-secondary);
@@ -771,6 +774,8 @@
       font-weight: 500;
       border-bottom: 1px solid #bae6fd;
       flex-shrink: 0;
+      position: relative;
+      z-index: 10;
   }
   body[data-theme="dark"] #announcement-banner {
       background-color: #1e293b; /* Darker blue for dark mode */
@@ -1007,12 +1012,6 @@
 </aside>
 
 <aside id="customize-sidebar" class="customize-sidebar">
-    <div class="customize-header">
-        <h3>Customize this page</h3>
-        <button id="close-customize-btn" class="close-sidebar-btn" aria-label="Close customization panel">
-            <i class="icon" data-icon="x"></i>
-        </button>
-    </div>
     <div class="customize-content">
         <!-- Appearance Section (Dark/Light Mode) -->
         <div class="customize-section">
@@ -1035,13 +1034,16 @@
         <div class="customize-section">
             <h4 class="customize-section-title">Background</h4>
             <div class="background-grid" id="background-grid">
+                <div class="background-card default-card" id="default-background-card">
+                    <i class="icon" data-icon="x"></i>
+                    <span>Default</span>
+                </div>
                 <div class="background-card upload-card" id="upload-background-card">
                     <i class="icon" data-icon="image"></i>
                     <span>Upload</span>
                 </div>
                 <!-- Background cards will be populated here -->
             </div>
-            <button id="reset-background-btn" class="reset-btn">Remove Background</button>
         </div>
     </div>
 </aside>
@@ -1331,12 +1333,11 @@ const App = {
             customize: {
                 trigger: document.getElementById('customize-trigger'),
                 sidebar: document.getElementById('customize-sidebar'),
-                closeBtn: document.getElementById('close-customize-btn'),
                 themeCardsGrid: document.getElementById('theme-cards-grid'),
                 backgroundGrid: document.getElementById('background-grid'),
+                defaultBackgroundCard: document.getElementById('default-background-card'),
                 uploadBackgroundCard: document.getElementById('upload-background-card'),
-                backgroundUploadInput: document.getElementById('background-upload-input'),
-                resetBackgroundBtn: document.getElementById('reset-background-btn')
+                backgroundUploadInput: document.getElementById('background-upload-input')
             }
         };
     },
@@ -1352,7 +1353,6 @@ const App = {
 
         // Customize panel event listeners
         this.dom.customize.trigger.addEventListener('click', (e) => Customize.toggleCustomize(e));
-        this.dom.customize.closeBtn.addEventListener('click', () => Customize.toggleCustomize());
         document.getElementById('sidebar-backdrop').addEventListener('click', () => {
             Customize.toggleCustomize();
             UI.toggleAdminMenuSidebar(false);
@@ -1362,10 +1362,10 @@ const App = {
         document.getElementById('light-mode-btn').addEventListener('click', () => this.setTheme('light'));
         document.getElementById('dark-mode-btn').addEventListener('click', () => this.setTheme('dark'));
 
-        // Background upload and reset
+        // Background upload and default
+        this.dom.customize.defaultBackgroundCard.addEventListener('click', () => Customize.removeBackground());
         this.dom.customize.uploadBackgroundCard.addEventListener('click', () => this.dom.customize.backgroundUploadInput.click());
         this.dom.customize.backgroundUploadInput.addEventListener('change', (e) => Customize.handleBackgroundUpload(e));
-        this.dom.customize.resetBackgroundBtn.addEventListener('click', () => Customize.removeBackground());
 
         if (this.state.isAdmin) {
             this.dom.admin.panelBtn.addEventListener('click', (e) => {
@@ -2345,6 +2345,7 @@ const Customize = {
 
     async loadBackgrounds() {
         const grid = App.dom.customize.backgroundGrid;
+        const defaultCard = grid.querySelector('.default-card');
         const uploadCard = grid.querySelector('.upload-card');
 
         try {
@@ -2358,9 +2359,10 @@ const Customize = {
                         </button>
                     </div>`
                 );
-                grid.innerHTML = uploadCard.outerHTML + loadingCards.join('');
+                grid.innerHTML = defaultCard.outerHTML + uploadCard.outerHTML + loadingCards.join('');
 
-                // Re-attach upload card listener
+                // Re-attach default and upload card listeners
+                grid.querySelector('.default-card').addEventListener('click', () => Customize.removeBackground());
                 grid.querySelector('.upload-card').addEventListener('click', () => App.dom.customize.backgroundUploadInput.click());
 
                 // Load images asynchronously
@@ -2451,9 +2453,9 @@ const Customize = {
         document.body.classList.remove('dark-bg');
         delete document.body.dataset.bgBrightness;
 
-        // Remove active state
+        // Set default card as active, remove active from others
         App.dom.customize.backgroundGrid.querySelectorAll('.background-card').forEach(card => {
-            card.classList.remove('active');
+            card.classList.toggle('active', card.classList.contains('default-card'));
         });
 
         this.saveCustomization({ ...this.getSavedCustomization(), selectedBackground: null, backgroundImage: null });
@@ -2756,6 +2758,14 @@ const Customize = {
             setTimeout(() => {
                 this.applyBackground(saved.selectedBackground, saved.backgroundImage, true);
             }, 500);
+        } else {
+            // Set default card as active if no background is saved
+            setTimeout(() => {
+                const defaultCard = App.dom.customize.backgroundGrid.querySelector('.default-card');
+                if (defaultCard) {
+                    defaultCard.classList.add('active');
+                }
+            }, 100);
         }
     }
 };
