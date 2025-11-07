@@ -2914,14 +2914,14 @@ const Customize = {
 
                     console.log('Background restored successfully from cache/Drive');
                 } else {
-                    console.warn('Failed to restore background, image not found');
-                    // Clear the saved background since it's invalid
-                    this.saveCustomization({ ...saved, selectedBackground: null });
+                    console.warn('Failed to restore background, image not found - keeping preference for retry');
+                    // Don't clear the saved background - it might load next time
+                    // Only clear if user explicitly removes it or deletes the image
                 }
             } catch (e) {
-                console.error('Error restoring background:', e);
-                // Clear the saved background since it failed to load
-                this.saveCustomization({ ...saved, selectedBackground: null });
+                console.error('Error restoring background (will retry on next load):', e);
+                // Don't clear the saved background on temporary errors
+                // The preference is kept so it can retry on next page load
             }
 
             // Set active state on the correct background card after grid loads
