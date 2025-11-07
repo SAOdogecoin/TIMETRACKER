@@ -2747,25 +2747,42 @@ const Customize = {
 
     loadSavedCustomization() {
         const saved = this.getSavedCustomization();
+        console.log('Loading saved customization:', saved);
 
         // Apply saved theme
         if (saved.selectedTheme) {
             this.applyTheme(saved.selectedTheme);
         }
 
-        // Apply saved background with image data (silent = true to suppress toast on page load)
+        // Apply saved background immediately on page load
         if (saved.selectedBackground && saved.backgroundImage) {
+            console.log('Restoring background:', saved.selectedBackground);
+
+            // Apply background styles immediately
+            document.body.style.backgroundImage = saved.backgroundImage;
+            document.body.classList.add('has-custom-bg');
+
+            // Extract image URL for brightness detection
+            const urlMatch = saved.backgroundImage.match(/url\(['"]?([^'"]+)['"]?\)/);
+            if (urlMatch && urlMatch[1]) {
+                this.detectImageBrightness(urlMatch[1]);
+            }
+
+            // Set active state on the correct background card after grid loads
             setTimeout(() => {
-                this.applyBackground(saved.selectedBackground, saved.backgroundImage, true);
-            }, 500);
+                App.dom.customize.backgroundGrid.querySelectorAll('.background-card').forEach(card => {
+                    card.classList.toggle('active', card.dataset.bgId === saved.selectedBackground);
+                });
+            }, 200);
         } else {
+            console.log('No background saved, using default');
             // Set default card as active if no background is saved
             setTimeout(() => {
                 const defaultCard = App.dom.customize.backgroundGrid.querySelector('.default-card');
                 if (defaultCard) {
                     defaultCard.classList.add('active');
                 }
-            }, 100);
+            }, 200);
         }
     }
 };
