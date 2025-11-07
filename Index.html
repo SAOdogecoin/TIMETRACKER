@@ -733,19 +733,33 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
+  }
+  .background-card.upload-card {
     background: var(--color-surface-secondary);
   }
-  .background-card.upload-card .icon,
-  .background-card.default-card .icon {
+  .background-card.default-card {
+    background: var(--color-text-primary);
+  }
+  .background-card.upload-card .icon {
     width: 32px;
     height: 32px;
     color: var(--color-text-secondary);
+  }
+  .background-card.default-card .icon {
+    width: 32px;
+    height: 32px;
+    color: var(--color-surface);
   }
   .background-card.upload-card span,
   .background-card.default-card span {
     font-size: 12px;
     font-weight: 600;
+  }
+  .background-card.upload-card span {
     color: var(--color-text-secondary);
+  }
+  .background-card.default-card span {
+    color: var(--color-surface);
   }
 
   /* Predefined background label */
