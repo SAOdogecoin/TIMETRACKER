@@ -2520,6 +2520,8 @@ const Customize = {
     },
 
     applyBackground(bgId, bgImage, silent = false) {
+        console.log('applyBackground called:', { bgId, bgImagePreview: bgImage?.substring(0, 50) + '...' });
+
         document.body.style.backgroundImage = bgImage;
         document.body.classList.add('has-custom-bg');
 
@@ -2534,7 +2536,15 @@ const Customize = {
             card.classList.toggle('active', card.dataset.bgId === bgId);
         });
 
-        this.saveCustomization({ ...this.getSavedCustomization(), selectedBackground: bgId, backgroundImage: bgImage });
+        // Save only the background ID (not the full image data) to avoid localStorage quota issues
+        // The image is already cached in CacheManager, so we can fetch it on page load
+        const dataToSave = { ...this.getSavedCustomization(), selectedBackground: bgId };
+        console.log('Saving customization with background ID:', bgId);
+        this.saveCustomization(dataToSave);
+
+        // Verify it was saved
+        const verified = this.getSavedCustomization();
+        console.log('Verified saved background ID:', verified.selectedBackground);
 
         // Only show toast if not silent (not on initial load)
         if (!silent) {
@@ -2553,7 +2563,7 @@ const Customize = {
             card.classList.toggle('active', card.classList.contains('default-card'));
         });
 
-        this.saveCustomization({ ...this.getSavedCustomization(), selectedBackground: null, backgroundImage: null });
+        this.saveCustomization({ ...this.getSavedCustomization(), selectedBackground: null });
         UI.showToast('Background removed!', 'success');
     },
 
@@ -2832,7 +2842,29 @@ const Customize = {
     },
 
     saveCustomization(data) {
-        localStorage.setItem('timetracker_customization', JSON.stringify(data));
+        try {
+            const jsonString = JSON.stringify(data);
+            console.log('Attempting to save to localStorage, size:', jsonString.length, 'bytes');
+            localStorage.setItem('timetracker_customization', jsonString);
+            console.log('Successfully saved to localStorage');
+        } catch (e) {
+            console.error('Failed to save customization to localStorage:', e);
+            if (e.name === 'QuotaExceededError') {
+                console.error('localStorage quota exceeded! Background image too large.');
+                UI.showToast('Background image is too large to save. Please choose a smaller image.', 'error');
+
+                // Try to save without the background image
+                const dataWithoutBg = { ...data };
+                delete dataWithoutBg.backgroundImage;
+                delete dataWithoutBg.selectedBackground;
+                try {
+                    localStorage.setItem('timetracker_customization', JSON.stringify(dataWithoutBg));
+                    console.log('Saved customization without background image');
+                } catch (e2) {
+                    console.error('Failed to save even without background:', e2);
+                }
+            }
+        }
     },
 
     getSavedCustomization() {
@@ -2840,7 +2872,7 @@ const Customize = {
         return saved ? JSON.parse(saved) : {};
     },
 
-    loadSavedCustomization() {
+    async loadSavedCustomization() {
         const saved = this.getSavedCustomization();
         console.log('Loading saved customization:', saved);
 
@@ -2849,18 +2881,33 @@ const Customize = {
             this.applyTheme(saved.selectedTheme);
         }
 
-        // Apply saved background immediately on page load
-        if (saved.selectedBackground && saved.backgroundImage) {
-            console.log('Restoring background:', saved.selectedBackground);
+        // Apply saved background by fetching it from cache/Drive using the ID
+        if (saved.selectedBackground) {
+            console.log('Restoring background ID:', saved.selectedBackground);
 
-            // Apply background styles immediately
-            document.body.style.backgroundImage = saved.backgroundImage;
-            document.body.classList.add('has-custom-bg');
+            try {
+                // Try to get the background image from cache or Drive
+                const result = await API.getProfilePicDataUrl(saved.selectedBackground);
+                if (result.success && result.dataUrl) {
+                    const bgImage = `url('${result.dataUrl}')`;
 
-            // Extract image URL for brightness detection
-            const urlMatch = saved.backgroundImage.match(/url\(['"]?([^'"]+)['"]?\)/);
-            if (urlMatch && urlMatch[1]) {
-                this.detectImageBrightness(urlMatch[1]);
+                    // Apply background styles immediately
+                    document.body.style.backgroundImage = bgImage;
+                    document.body.classList.add('has-custom-bg');
+
+                    // Extract image URL for brightness detection
+                    this.detectImageBrightness(result.dataUrl);
+
+                    console.log('Background restored successfully from cache/Drive');
+                } else {
+                    console.warn('Failed to restore background, image not found');
+                    // Clear the saved background since it's invalid
+                    this.saveCustomization({ ...saved, selectedBackground: null });
+                }
+            } catch (e) {
+                console.error('Error restoring background:', e);
+                // Clear the saved background since it failed to load
+                this.saveCustomization({ ...saved, selectedBackground: null });
             }
 
             // Set active state on the correct background card after grid loads
