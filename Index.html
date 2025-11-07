@@ -51,10 +51,27 @@
       --color-sidebar-bg: #18181B;
   }
 
-  /* Dark background image - override text colors only */
-  body.has-custom-bg.dark-bg {
-      --color-text-primary: #F4F4F5 !important;
-      --color-text-secondary: #E4E4E7 !important;
+  /* Background image text adjustments - ONLY for dashboard header elements over background */
+  /* Dark background: white text */
+  body.has-custom-bg.dark-bg .greeting-title,
+  body.has-custom-bg.dark-bg .current-date,
+  body.has-custom-bg.dark-bg .main-time-counter,
+  body.has-custom-bg.dark-bg .current-status-text {
+      color: #F4F4F5 !important;
+  }
+  body.has-custom-bg.dark-bg .current-date {
+      color: #E4E4E7 !important;
+  }
+
+  /* Light background: dark text (only when NOT using dark theme which already has light text) */
+  body.has-custom-bg:not(.dark-bg) .greeting-title,
+  body.has-custom-bg:not(.dark-bg) .current-date,
+  body.has-custom-bg:not(.dark-bg) .main-time-counter,
+  body.has-custom-bg:not(.dark-bg) .current-status-text {
+      color: #18181B !important;
+  }
+  body.has-custom-bg:not(.dark-bg) .current-date {
+      color: #52525B !important;
   }
 
   /* Base & Layout */
@@ -2331,16 +2348,7 @@ const Customize = {
         document.body.style.backgroundImage = '';
         document.body.classList.remove('has-custom-bg');
         document.body.classList.remove('dark-bg');
-
-        // Reset to default text colors based on light/dark mode
-        const isDark = document.body.dataset.theme === 'dark';
-        if (isDark) {
-            document.documentElement.style.setProperty('--color-text-primary', '#F4F4F5');
-            document.documentElement.style.setProperty('--color-text-secondary', '#A1A1AA');
-        } else {
-            document.documentElement.style.setProperty('--color-text-primary', '#18181B');
-            document.documentElement.style.setProperty('--color-text-secondary', '#71717A');
-        }
+        delete document.body.dataset.bgBrightness;
 
         // Remove active state
         App.dom.customize.backgroundGrid.querySelectorAll('.background-card').forEach(card => {
