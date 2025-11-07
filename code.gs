@@ -782,17 +782,21 @@ function getBackgroundImages() {
     }
     const folder = folders.next();
     const images = [];
+    const userEmail = Session.getActiveUser().getEmail();
+    const sanitizedEmail = userEmail.replace(/[@.]/g, '_'); // Sanitize email for filename matching
 
-    // Get custom backgrounds (bg_custom_*)
-    const files = folder.getFilesByName('bg_custom');
-    const customBgFiles = [];
-
-    // Search for files that start with bg_custom or are named bg1-bg5
+    // Search for files that belong to this user or are predefined backgrounds
     const allFiles = folder.getFiles();
     while (allFiles.hasNext()) {
       const file = allFiles.next();
       const fileName = file.getName();
-      if (fileName.startsWith('bg_custom') || /^bg[1-5]$/.test(fileName)) {
+
+      // Include predefined backgrounds (bg1-bg5) for everyone
+      if (/^bg[1-5]$/.test(fileName)) {
+        images.push({ name: fileName, id: file.getId() });
+      }
+      // Include custom backgrounds only if they belong to this user
+      else if (fileName.startsWith(`bg_custom_${sanitizedEmail}_`)) {
         images.push({ name: fileName, id: file.getId() });
       }
     }
@@ -809,8 +813,11 @@ function saveBackgroundImage(base64Data, mimeType) {
     let folders = DriveApp.getFoldersByName(ASSET_FOLDER_NAME);
     let folder = folders.hasNext() ? folders.next() : DriveApp.createFolder(ASSET_FOLDER_NAME);
 
+    const userEmail = Session.getActiveUser().getEmail();
+    const sanitizedEmail = userEmail.replace(/[@.]/g, '_'); // Sanitize email for filename
     const timestamp = new Date().getTime();
-    const blob = Utilities.newBlob(Utilities.base64Decode(base64Data), mimeType, `bg_custom_${timestamp}.png`);
+    const fileName = `bg_custom_${sanitizedEmail}_${timestamp}.png`;
+    const blob = Utilities.newBlob(Utilities.base64Decode(base64Data), mimeType, fileName);
 
     const newFile = folder.createFile(blob);
     return { success: true, fileId: newFile.getId() };
@@ -823,6 +830,16 @@ function saveBackgroundImage(base64Data, mimeType) {
 function deleteBackgroundImage(fileId) {
   try {
     const file = DriveApp.getFileById(fileId);
+    const fileName = file.getName();
+    const userEmail = Session.getActiveUser().getEmail();
+    const sanitizedEmail = userEmail.replace(/[@.]/g, '_');
+
+    // Security check: Only allow users to delete their own backgrounds
+    // (or allow admins to delete any)
+    if (!fileName.startsWith(`bg_custom_${sanitizedEmail}_`) && !isAdmin_()) {
+      return { success: false, error: 'Permission denied. You can only delete your own backgrounds.' };
+    }
+
     file.setTrashed(true);
     return { success: true };
   } catch (e) {

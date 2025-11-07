@@ -530,7 +530,6 @@
     justify-content: space-between;
     align-items: center;
     padding: 12px 16px 12px 24px;
-    border-bottom: 1px solid var(--color-border);
     flex-shrink: 0;
   }
   .customize-header h3 {
@@ -762,6 +761,22 @@
     color: var(--color-surface);
   }
 
+  /* Default theme uses reverse mode's text color */
+  body[data-theme="light"][data-theme-id="default"] .background-card.default-card {
+    background: #F4F4F5;
+  }
+  body[data-theme="light"][data-theme-id="default"] .background-card.default-card .icon,
+  body[data-theme="light"][data-theme-id="default"] .background-card.default-card span {
+    color: #18181B;
+  }
+  body[data-theme="dark"][data-theme-id="default"] .background-card.default-card {
+    background: #18181B;
+  }
+  body[data-theme="dark"][data-theme-id="default"] .background-card.default-card .icon,
+  body[data-theme="dark"][data-theme-id="default"] .background-card.default-card span {
+    color: #F4F4F5;
+  }
+
   /* Predefined background label */
   .background-card .bg-label {
     position: absolute;
@@ -909,11 +924,11 @@
   .admin-panel-content { display: flex; flex-direction: column; gap: 16px; }
 
   #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 10px; max-width: 320px; }
-  .toast-message { padding: 12px 20px; border-radius: var(--radius-md); color: #fff; font-weight: 500; box-shadow: var(--shadow-lg); opacity: 0; transform: translateX(100%); transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+  .toast-message { padding: 12px 20px; border-radius: var(--radius-md); font-weight: 500; box-shadow: var(--shadow-lg); opacity: 0; transform: translateX(100%); transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
   .toast-message.show { opacity: 1; transform: translateX(0); }
-  .toast-success { background-color: var(--color-green); }
-  .toast-error { background-color: var(--color-red); }
-  .toast-info { background-color: var(--color-brand); }
+  .toast-success { background-color: var(--color-brand); color: var(--color-surface); }
+  .toast-error { background-color: var(--color-red); color: #fff; }
+  .toast-info { background-color: var(--color-text-primary); color: var(--color-surface); }
 
   .timed-action-row { display: grid; grid-template-columns: 30px 1fr 1fr 30px; gap: 8px; align-items: center; margin-bottom: 8px; }
   .timed-action-row select, .timed-action-row input { height: 36px; padding: 0 8px; }
@@ -1082,7 +1097,7 @@
             <div class="background-grid" id="background-grid">
                 <div class="background-card default-card" id="default-background-card">
                     <i class="icon" data-icon="x"></i>
-                    <span>Default</span>
+                    <span>No Background</span>
                 </div>
                 <div class="background-card upload-card" id="upload-background-card">
                     <i class="icon" data-icon="image"></i>
@@ -2372,6 +2387,9 @@ const Customize = {
         const currentMode = document.body.dataset.theme || 'light';
         const theme = this.themes[currentMode].find(t => t.id === themeId);
         if (!theme) return;
+
+        // Set theme ID as data attribute for CSS targeting
+        document.body.dataset.themeId = themeId;
 
         // Apply all color variables to body element to override CSS defaults
         document.body.style.setProperty('--color-text-primary', theme.text);
