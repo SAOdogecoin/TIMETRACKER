@@ -520,6 +520,9 @@
       opacity: 1;
       visibility: visible;
     }
+    #close-customize-btn {
+      display: none;
+    }
   }
 
   .customize-header {
@@ -1035,6 +1038,12 @@
 </aside>
 
 <aside id="customize-sidebar" class="customize-sidebar">
+    <div class="customize-header">
+        <h3 style="margin: 0; font-size: 18px; font-weight: 600;">Customize</h3>
+        <button id="close-customize-btn" class="icon-btn" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+            <i class="icon" data-icon="x"></i>
+        </button>
+    </div>
     <div class="customize-content">
         <!-- Appearance Section (Dark/Light Mode) -->
         <div class="customize-section">
@@ -1376,6 +1385,7 @@ const App = {
 
         // Customize panel event listeners
         this.dom.customize.trigger.addEventListener('click', (e) => Customize.toggleCustomize(e));
+        document.getElementById('close-customize-btn').addEventListener('click', () => Customize.toggleCustomize());
         document.getElementById('sidebar-backdrop').addEventListener('click', () => {
             Customize.toggleCustomize();
             UI.toggleAdminMenuSidebar(false);

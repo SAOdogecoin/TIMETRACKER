@@ -582,13 +582,13 @@ function getDynamicGreeting(userName) {
 
     // Day-specific greetings
     const dayGreetings = {
-      0: '☀️ Happy Sunday',       // Sunday
-      1: '💪 Happy Monday',        // Monday
-      2: '🚀 Happy Tuesday',       // Tuesday
-      3: '⚡ Happy Wednesday',     // Wednesday
-      4: '🎯 Happy Thursday',      // Thursday
+      0: '🌟 Happy Weekend',       // Sunday
+      1: '💪 Happy Monday',        // Monday (not shown)
+      2: '🚀 Happy Tuesday',       // Tuesday (not shown)
+      3: '⚡ Happy Wednesday',     // Wednesday (not shown)
+      4: '🎯 Happy Thursday',      // Thursday (not shown)
       5: '🎉 Happy Friday',        // Friday
-      6: '🌟 Happy Saturday'       // Saturday
+      6: '🌟 Happy Weekend'        // Saturday
     };
 
     // Time-based greetings
