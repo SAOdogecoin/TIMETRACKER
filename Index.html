@@ -120,28 +120,26 @@
     height: 100vh;
     position: relative;
     width: 100%;
-    transform: scale(0.9);
-    transform-origin: center center;
   }
-  .dashboard-content { flex: 1; overflow-y: auto; padding: 24px 48px; position: relative; }
-  .main-content-wrapper { width: 100%; max-width: 600px; margin: 0 auto; }
+  .dashboard-content { flex: 1; overflow-y: auto; padding: 21px 43px; position: relative; } /* 90% of 24px/48px */
+  .main-content-wrapper { width: 100%; max-width: 540px; margin: 0 auto; } /* 90% of 600px */
 
-  @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeInUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } } /* 90% of 20px */
 
-  .dashboard-header { margin-bottom: 24px; animation: fadeInUp 0.5s ease-out both; }
-  .greeting-title { font-size: 32px; font-weight: 600; color: var(--color-text-primary); }
-  .current-date { font-size: 16px; font-weight: 500; color: var(--color-text-secondary); }
-  
-  .main-time-counter { font-size: 7.5rem; font-weight: 700; line-height: 1; color: var(--color-text-primary); margin-bottom: 8px; font-variant-numeric: tabular-nums; animation: fadeInUp 0.5s 0.1s ease-out both; }
-  .current-status-text { font-size: 1.1rem; font-weight: 500; color: var(--color-text-secondary); margin-bottom: 32px; text-align: left; animation: fadeInUp 0.5s 0.2s ease-out both;}
-  
+  .dashboard-header { margin-bottom: 21px; animation: fadeInUp 0.5s ease-out both; } /* 90% of 24px */
+  .greeting-title { font-size: 28.8px; font-weight: 600; color: var(--color-text-primary); } /* 90% of 32px */
+  .current-date { font-size: 14.4px; font-weight: 500; color: var(--color-text-secondary); } /* 90% of 16px */
+
+  .main-time-counter { font-size: 6.75rem; font-weight: 700; line-height: 1; color: var(--color-text-primary); margin-bottom: 7px; font-variant-numeric: tabular-nums; animation: fadeInUp 0.5s 0.1s ease-out both; } /* 90% of 7.5rem/8px */
+  .current-status-text { font-size: 0.99rem; font-weight: 500; color: var(--color-text-secondary); margin-bottom: 28.8px; text-align: left; animation: fadeInUp 0.5s 0.2s ease-out both;} /* 90% of 1.1rem/32px */
+
   .status-text-working { color: var(--color-green); }
   .status-text-break { color: var(--color-orange); }
   .status-text-offline { color: var(--color-text-secondary); }
-  .status-text-warning { color: var(--color-orange); } 
-  
-  .main-action-button-container { min-height: 72px; margin-bottom: 48px; position: relative; animation: fadeInUp 0.5s 0.3s ease-out both; }
-  .main-action-button { height: 60px; padding: 0 40px; border-radius: 99px; font-size: 20px; font-weight: 600; border: none; position: absolute; transition: all 0.25s ease; color: #fff; cursor: pointer; }
+  .status-text-warning { color: var(--color-orange); }
+
+  .main-action-button-container { min-height: 64.8px; margin-bottom: 43.2px; position: relative; animation: fadeInUp 0.5s 0.3s ease-out both; } /* 90% of 72px/48px */
+  .main-action-button { height: 54px; padding: 0 36px; border-radius: 99px; font-size: 18px; font-weight: 600; border: none; position: absolute; transition: all 0.25s ease; color: #fff; cursor: pointer; } /* 90% of 60px/40px/20px */
   .main-action-button:disabled { background-color: var(--color-disabled); cursor: not-allowed; transform: none !important; box-shadow: none !important; }
   
   .main-action-button:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
@@ -153,10 +151,10 @@
   .btn-red { background-color: var(--color-red); }
   .btn-red:hover:not(:disabled) { background-color: var(--color-red-hover); }
   
-  .dashboard-widgets-grid { display: grid; grid-template-columns: 1fr; grid-auto-rows: min-content; gap: 24px; animation: fadeInUp 0.5s 0.4s ease-out both;}
+  .dashboard-widgets-grid { display: grid; grid-template-columns: 1fr; grid-auto-rows: min-content; gap: 21.6px; animation: fadeInUp 0.5s 0.4s ease-out both;} /* 90% of 24px */
 
   .top-bar {
-    padding: 12px 24px;
+    padding: 10.8px 21.6px; /* 90% of 12px/24px */
     display: flex;
     justify-content: space-between;
     align-items: center;
