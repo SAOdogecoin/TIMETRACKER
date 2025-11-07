@@ -80,18 +80,11 @@
       color: #52525B !important;
   }
 
-  /* Add subtle shadows when background is present for better visibility */
-  body.has-custom-bg .greeting-title,
-  body.has-custom-bg .current-date,
-  body.has-custom-bg .main-time-counter,
-  body.has-custom-bg .current-status-text {
-      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
-  }
-  body.has-custom-bg .admin-panel-trigger,
-  body.has-custom-bg .admin-panel-trigger span,
-  body.has-custom-bg #customize-trigger .icon {
-      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
-      filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.2));
+  /* Disable status tag color coding when background is present */
+  body.has-custom-bg .status-text-working,
+  body.has-custom-bg .status-text-break,
+  body.has-custom-bg .status-text-offline {
+      color: inherit !important;
   }
 
   /* Base & Layout */
@@ -500,6 +493,22 @@
     padding: 24px;
     overflow-y: auto;
     flex-grow: 1;
+  }
+
+  /* Pill-only scrollbar for customization panel */
+  .customize-content::-webkit-scrollbar {
+    width: 8px;
+  }
+  .customize-content::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .customize-content::-webkit-scrollbar-thumb {
+    background: var(--color-text-secondary);
+    border-radius: 99px;
+    opacity: 0.5;
+  }
+  .customize-content::-webkit-scrollbar-thumb:hover {
+    background: var(--color-text-primary);
   }
 
   .customize-section {
@@ -968,6 +977,14 @@
             </div>
         </div>
 
+        <!-- Color & Theme Section -->
+        <div class="customize-section">
+            <h4 class="customize-section-title">Color & Theme</h4>
+            <div class="theme-cards-grid" id="theme-cards-grid">
+                <!-- Theme cards will be populated here -->
+            </div>
+        </div>
+
         <!-- Background Section -->
         <div class="customize-section">
             <h4 class="customize-section-title">Background</h4>
@@ -979,14 +996,6 @@
                 <!-- Background cards will be populated here -->
             </div>
             <button id="reset-background-btn" class="reset-btn">Remove Background</button>
-        </div>
-
-        <!-- Color & Theme Section -->
-        <div class="customize-section">
-            <h4 class="customize-section-title">Color & Theme</h4>
-            <div class="theme-cards-grid" id="theme-cards-grid">
-                <!-- Theme cards will be populated here -->
-            </div>
         </div>
     </div>
 </aside>
