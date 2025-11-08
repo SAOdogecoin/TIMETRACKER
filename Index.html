@@ -482,7 +482,7 @@
   .customize-sidebar {
     width: 380px;
     flex-shrink: 0;
-    background: var(--color-surface);
+    background: var(--color-surface-secondary);
     border-left: 1px solid var(--color-border);
     display: flex;
     flex-direction: column;
@@ -537,7 +537,7 @@
   }
 
   .customize-content {
-    padding: 24px;
+    padding: 16px;
     overflow-y: auto;
     flex-grow: 1;
   }
@@ -559,18 +559,16 @@
   }
 
   .customize-section {
-    margin-bottom: 32px;
+    background: var(--color-surface);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
   }
   .customize-section:last-child {
     margin-bottom: 0;
   }
   .customize-section-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--color-text-primary);
-    margin-bottom: 16px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    display: none; /* Hide section titles */
   }
 
   /* Theme Cards Grid - Material You style */
@@ -593,7 +591,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--color-surface);
+    background: var(--color-surface-secondary);
   }
   .theme-card:hover {
     border-color: var(--color-text-secondary);
