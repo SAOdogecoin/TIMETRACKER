@@ -18,11 +18,12 @@
       /* Light Theme (Default) */
       --color-bg: #F8F9FA;
       --color-surface: #FFFFFF;
-      --color-surface-secondary: #F0F2F5; 
+      --color-surface-secondary: #F0F2F5;
+      --color-surface-tertiary: #E5E7EB;
       --color-border: rgba(0, 0, 0, 0.08);
       --color-text-primary: #18181B;
       --color-text-secondary: #71717A;
-      --color-brand: #0071dc; 
+      --color-brand: #0071dc;
       --color-bg-hover: rgba(0, 0, 0, 0.04);
       --background-image: linear-gradient(180deg, #FFFFFF 0%, #F8F9FA 100%);
       --color-disabled: #cbd5e1;
@@ -42,6 +43,7 @@
       --color-bg: #111113;
       --color-surface: #18181B;
       --color-surface-secondary: #242526;
+      --color-surface-tertiary: #1A1A1C;
       --color-border: rgba(255, 255, 255, 0.1);
       --color-text-primary: #F4F4F5;
       --color-text-secondary: #A1A1AA;
@@ -505,7 +507,7 @@
       max-height: 80vh;
       top: auto;
       right: 24px;
-      border: 1px solid var(--color-border);
+      border: none;
       border-radius: var(--radius-lg);
       box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.25);
       transform: scale(0.95) translateY(-10px);
@@ -591,7 +593,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--color-surface-secondary);
+    background: var(--color-surface-tertiary);
   }
   .theme-card:hover {
     border-color: var(--color-text-secondary);
